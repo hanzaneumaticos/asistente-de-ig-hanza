@@ -1,0 +1,41 @@
+{
+    "name": "Hanza AI Bridge",
+    "flow": [
+        {
+            "id": 1,
+            "module": "instagram-business:watchMessages",
+            "parameters": {},
+            "mapper": {},
+            "metadata": {
+                "expect": []
+            }
+        },
+        {
+            "id": 2,
+            "module": "http:makeRequest",
+            "parameters": {
+                "url": "https://purple-clouds-watch.loca.lt/webhook/instagram-bridge",
+                "method": "POST",
+                "headers": [],
+                "bodyType": "json",
+                "content": "{\"text\": \"{{1.text}}\", \"sender_id\": \"{{1.senderId}}\"}"
+            },
+            "mapper": {},
+            "metadata": {
+                "expect": []
+            }
+        },
+        {
+            "id": 3,
+            "module": "instagram-business:sendMessage",
+            "parameters": {
+                "recipientId": "{{1.senderId}}",
+                "text": "{{2.data.content}}"
+            },
+            "mapper": {},
+            "metadata": {
+                "expect": []
+            }
+        }
+    ]
+}

@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanza - Back Office de Administración</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #090d16;
+            --bg-card: #131926;
+            --bg-card-hover: #1c2538;
+            --primary: #2563eb;
+            --primary-glow: rgba(37, 99, 235, 0.4);
+            --emerald: #10b981;
+            --rose: #f43f5e;
+            --amber: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        .navbar {
+            height: 70px;
+            background: rgba(19, 25, 38, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .global-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-badge {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--emerald);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--emerald);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        /* --- Main Content Layout --- */
+        .app-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- Panel 1: Chat List --- */
+        .sidebar {
+            width: 380px;
+            border-right: 1px solid var(--border);
+            background: #0d121f;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-badge {
+            background: var(--primary);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 50px;
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px 15px;
+            border-radius: 10px;
+            color: white;
+            outline: none;
+            font-family: inherit;
+            font-size: 13px;
+            transition: 0.3s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .chat-item:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255,255,255,0.15);
+        }
+
+        .chat-item.active {
+            background: rgba(37, 99, 235, 0.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.1);
+        }
+
+        .chat-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .chat-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .chat-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .chat-preview {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .lead-tag {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 50px;
+            text-transform: uppercase;
+        }
+
+        .tag-hot { background: rgba(244, 63, 94, 0.1); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.2); }
+        .tag-warm { background: rgba(245, 158, 11, 0.1); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .tag-cold { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.2); }
+        .tag-deriv { background: rgba(37, 99, 235, 0.1); color: var(--primary); border: 1px solid rgba(37, 99, 235, 0.2); }
+
+        /* --- Toggle Switch --- */
+        .bot-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .switch-label {
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 50px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--emerald);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(16px);
+        }
+
+        /* --- Panel 2: Live Chat & History --- */
+        .chat-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #090d16;
+            border-right: 1px solid var(--border);
+        }
+
+        .chat-header {
+            height: 70px;
+            border-bottom: 1px solid var(--border);
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0d121f;
+        }
+
+        .chat-title-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header-name {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .chat-header-vehicle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chat-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .action-btn {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .action-btn.takeover {
+            background: rgba(244, 63, 94, 0.15);
+            color: var(--rose);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .action-btn.takeover.active {
+            background: var(--rose);
+            color: white;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .msg-bubble {
+            max-width: 70%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+
+        .msg-user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg-bot {
+            align-self: flex-start;
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 2px;
+        }
+
+        .msg-info {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .input-bar {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: #0d121f;
+            display: flex;
+            gap: 15px;
+        }
+
+        .input-bar input {
+            flex: 1;
+            background: var(--bg-main);
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 12px;
+            color: white;
+            outline: none;
+            font-family: inherit;
+            font-size: 13.5px;
+        }
+
+        .input-bar button {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 0 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+
+        /* --- Panel 3: Knowledge Base & Stock --- */
+        .control-panel {
+            width: 420px;
+            background: #0d121f;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .section-box {
+            padding: 25px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rules-area {
+            width: 100%;
+            height: 150px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            font-family: inherit;
+            font-size: 13px;
+            resize: none;
+            outline: none;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .rules-area:focus {
+            border-color: var(--primary);
+        }
+
+        .save-btn {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        .save-btn:hover {
+            opacity: 0.9;
+        }
+
+        .rules-list {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .rule-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delete-rule {
+            color: var(--rose);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* --- Drag & Drop Zone --- */
+        .upload-zone {
+            border: 2px dashed rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            background: var(--bg-card);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.04);
+        }
+
+        .upload-icon {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtext {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- --- Navbar --- -->
+    <div class="navbar">
+        <div class="brand">
+            <div class="brand-logo">H</div>
+            <div class="brand-name">Hanza Neumáticos</div>
+        </div>
+        <div class="global-status">
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                Hancita Online (Activa)
+            </div>
+        </div>
+    </div>
+
+    <!-- --- App Layout --- -->
+    <div class="app-container">
+
+        <!-- --- Panel 1: Chats List --- -->
+        <div class="sidebar">
+            <div class="panel-header">
+                <div class="panel-title">
+                    Chats Recientes
+                    <span class="panel-badge" id="chats-count">3 Chats</span>
+                </div>
+                <div class="search-box">
+                    <input type="text" placeholder="Buscar por número o nombre...">
+                </div>
+            </div>
+            <div class="chat-list" id="chat-list-container">
+                <!-- Chat 1 -->
+                <div class="chat-item active" onclick="selectChat(0)">
+                    <div class="chat-info">
+                        <div class="chat-name">Karim (SW4)</div>
+                        <div class="chat-time">Hace 1 min</div>
+                    </div>
+                    <div class="chat-preview" id="preview-0">¿Tenés disponible en Michelin Primacy SUV?</div>
+                    <div class="chat-footer">
+                        <span class="lead-tag tag-hot" id="tag-0">Caliente</span>
+                        <div class="bot-toggle-container">
+                            <span class="switch-label" id="toggle-label-0" style="color: var(--emerald);">Bot ON</span>
+                            <label class="switch">
+                                <input type="checkbox" checked id="bot-chk-0" onchange="toggleBot(0, event)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <!-- Chat 2 -->
+                <div class="chat-item" onclick="selectChat(1)">
+                    <div class="chat-info">
+                        <div class="chat-name">Mariela (Amarok)</div>
+                        <div class="chat-time">Hace 12 min</div>
+                    </div>
+                    <div class="chat-preview" id="preview-1">Te confirmo que la medida que tengo es 255/60/18</div>
+                    <div class="chat-footer">
+                        <span class="lead-tag tag-warm" id="tag-1">Tibio</span>
+                        <div class="bot-toggle-container">
+                            <span class="switch-label" id="toggle-label-1" style="color: var(--emerald);">Bot ON</span>
+                            <label class="switch">
+                                <input type="checkbox" checked id="bot-chk-1" onchange="toggleBot(1, event)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <!-- Chat 3 -->
+                <div class="chat-item" onclick="selectChat(2)">
+                    <div class="chat-info">
+                        <div class="chat-name">Gonzalo Fletera</div>
+                        <div class="chat-time">Hace 1 hora</div>
+                    </div>
+                    <div class="chat-preview" id="preview-2">Hola, llamame cuando puedas por las 12 cubiertas</div>
+                    <div class="chat-footer">
+                        <span class="lead-tag tag-deriv" id="tag-2">Derivado</span>
+                        <div class="bot-toggle-container">
+                            <span class="switch-label" id="toggle-label-2" style="color: var(--rose);">Manual</span>
+                            <label class="switch">
+                                <input type="checkbox" id="bot-chk-2" onchange="toggleBot(2, event)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- Panel 2: Live Chat Content --- -->
+        <div class="chat-content">
+            <div class="chat-header">
+                <div class="chat-title-info">
+                    <div class="chat-header-name" id="current-chat-name">Karim (SW4)</div>
+                    <div class="chat-header-vehicle" id="current-chat-details">Toyota SW4 | Busca: 265/65/17 | Scoring: 85%</div>
+                </div>
+                <div class="chat-actions">
+                    <button class="action-btn takeover" id="takeover-btn" onclick="manualTakeover()">Tomar Control Manual</button>
+                </div>
+            </div>
+
+            <div class="messages-container" id="messages-window">
+                <!-- Messages load dynamically -->
+            </div>
+
+            <div class="input-bar">
+                <input type="text" id="manual-input" placeholder="Escribe un mensaje manual a este cliente (esto silenciará al bot para este chat)...">
+                <button onclick="sendManualMessage()">Enviar</button>
+            </div>
+        </div>
+
+        <!-- --- Panel 3: Control Panel & Knowledge Base --- -->
+        <div class="control-panel">
+            
+            <!-- Excel Manager -->
+            <div class="section-box">
+                <div class="section-title">
+                    <span>📊 Carga de Catálogo y Stock (Excel)</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div class="upload-zone" onclick="simulateUpload('Propio')">
+                        <div class="upload-icon">📂</div>
+                        <div class="upload-text">Subir Stock Propio</div>
+                        <div class="upload-subtext">Soporta formatos .xlsx y .xls</div>
+                    </div>
+                    <div class="upload-zone" onclick="simulateUpload('Fabrica')">
+                        <div class="upload-icon">🏭</div>
+                        <div class="upload-text">Subir Stock Fábrica</div>
+                        <div class="upload-subtext">Michelin / BF Goodrich (demora 2-3 días)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Rules (Knowledge Base) -->
+            <div class="section-box" style="border-bottom: none;">
+                <div class="section-title">
+                    <span>💡 Instrucciones Manuales para la IA</span>
+                </div>
+                <textarea class="rules-area" id="new-rule-text" placeholder="Escribe una instrucción para Hancita. Ejemplo:
+- Para camionetas SW4 sugerir 265/65 R17 o 265/70 R17.
+- Los envíos son gratis a todo el país.
+- No vender otras marcas que no sean Michelin o BF Goodrich."></textarea>
+                <button class="save-btn" onclick="addRule()">Guardar y Entrenar IA</button>
+
+                <div class="rules-list" id="rules-container">
+                    <!-- Rule 1 -->
+                    <div class="rule-item">
+                        <span>• Envíos gratis a toda la Argentina (Logística propia o Vía Cargo)</span>
+                        <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                    </div>
+                    <!-- Rule 2 -->
+                    <div class="rule-item">
+                        <span>• Demora de 2-3 días si el producto solo está en fábrica</span>
+                        <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                    </div>
+                    <!-- Rule 3 -->
+                    <div class="rule-item">
+                        <span>• Evitar lunfardos y mantener voseo educado y cordial</span>
+                        <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- --- JS Interactivo Mock --- -->
+    <script>
+        let activeChatIndex = 0;
+
+        const mockChats = [
+            {
+                name: "Karim (SW4)",
+                details: "Toyota SW4 | Busca: 265/65/17 | Scoring: 85%",
+                tag: "Caliente",
+                botEnabled: true,
+                messages: [
+                    { role: "user", text: "Hola, busco cubiertas para una SW4, ¿qué tenés?", time: "15:30" },
+                    { role: "bot", text: "¡Hola! Qué excelente camioneta. De fábrica suele venir con la medida 265/65 R17 o 265/60 R18. ¿Tenés colocada alguna de esas medidas actualmente?", time: "15:31" },
+                    { role: "user", text: "Sí, tiene la 265/65/17", time: "15:32" },
+                    { role: "bot", text: "Perfecto. Te comento que en esa medida tenemos una excelente opción en stock propio: la Michelin Primacy SUV, ideal para andar en asfalto con máximo confort y seguridad bajo la lluvia.", time: "15:33" },
+                    { role: "bot", text: "El precio promocional de contado efectivo es de $320.000 con el envío 100% gratuito a tu domicilio. ¿Te sirve que te reserve las 4?", time: "15:33" },
+                    { role: "user", text: "Uf, ¿y tenés disponible en Michelin Primacy SUV?", time: "15:34" }
+                ]
+            },
+            {
+                name: "Mariela (Amarok)",
+                details: "VW Amarok | Busca: 255/60/18 | Scoring: 60%",
+                tag: "Tibio",
+                botEnabled: true,
+                messages: [
+                    { role: "user", text: "Buenas, busco cotización para una Amarok", time: "15:10" },
+                    { role: "bot", text: "¡Hola! ¿Cómo estás? Con gusto te asesoro. Las Amarok suelen venir con medida 245/65 R17 o 255/60 R18 de fábrica. ¿Sabés cuál tenés colocada actualmente?", time: "15:11" },
+                    { role: "user", text: "Te confirmo que la medida que tengo es 255/60/18", time: "15:12" }
+                ]
+            },
+            {
+                name: "Gonzalo Fletera",
+                details: "Flotas de 12 Unidades | Derivado por Karim | Scoring: 95%",
+                tag: "Derivado",
+                botEnabled: false,
+                messages: [
+                    { role: "user", text: "Hola, necesito cotizar para cambiar las cubiertas de toda la flota de camionetas. Son 3 Hilux, es decir 12 cubiertas.", time: "14:20" },
+                    { role: "bot", text: "¡Hola Gonzalo! Qué bueno que nos contactes. Al ser una consulta corporativa por un lote grande de 12 cubiertas, ya mismo te derivo de forma preferencial con Karim, nuestro asesor principal, para que te arme una cotización a medida y con descuento por volumen.", time: "14:21" },
+                    { role: "user", text: "Hola, llamame cuando puedas por las 12 cubiertas", time: "14:22" }
+                ]
+            }
+        ];
+
+        function renderMessages() {
+            const container = document.getElementById("messages-window");
+            container.innerHTML = "";
+            const chat = mockChats[activeChatIndex];
+            
+            chat.messages.forEach(msg => {
+                const div = document.createElement("div");
+                div.className = `msg-bubble ${msg.role === 'user' ? 'msg-user' : 'msg-bot'}`;
+                
+                const textDiv = document.createElement("div");
+                textDiv.innerText = msg.text;
+                div.appendChild(textDiv);
+                
+                const infoDiv = document.createElement("div");
+                infoDiv.className = "msg-info";
+                infoDiv.innerText = msg.time;
+                div.appendChild(infoDiv);
+                
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+
+            // Render takeover button state
+            const takeoverBtn = document.getElementById("takeover-btn");
+            if (!chat.botEnabled) {
+                takeoverBtn.innerText = "Control Manual Activo (IA Apagada)";
+                takeoverBtn.classList.add("active");
+            } else {
+                takeoverBtn.innerText = "Tomar Control Manual";
+                takeoverBtn.classList.remove("active");
+            }
+        }
+
+        function selectChat(index) {
+            activeChatIndex = index;
+            
+            // Remove active classes
+            const items = document.querySelectorAll(".chat-item");
+            items.forEach((item, idx) => {
+                if (idx === index) item.classList.add("active");
+                else item.classList.remove("active");
+            });
+
+            const chat = mockChats[index];
+            document.getElementById("current-chat-name").innerText = chat.name;
+            document.getElementById("current-chat-details").innerText = chat.details;
+
+            renderMessages();
+        }
+
+        function toggleBot(index, event) {
+            const chk = document.getElementById(`bot-chk-${index}`);
+            const label = document.getElementById(`toggle-label-${index}`);
+            const tag = document.getElementById(`tag-${index}`);
+            
+            mockChats[index].botEnabled = chk.checked;
+            
+            if (chk.checked) {
+                label.innerText = "Bot ON";
+                label.style.color = "var(--emerald)";
+                if (mockChats[index].tag === "Derivado") {
+                    mockChats[index].tag = "Caliente";
+                    tag.className = "lead-tag tag-hot";
+                    tag.innerText = "Caliente";
+                }
+            } else {
+                label.innerText = "Manual";
+                label.style.color = "var(--rose)";
+                mockChats[index].tag = "Derivado";
+                tag.className = "lead-tag tag-deriv";
+                tag.innerText = "Derivado";
+            }
+
+            if (index === activeChatIndex) {
+                renderMessages();
+            }
+            event.stopPropagation();
+        }
+
+        function manualTakeover() {
+            const chat = mockChats[activeChatIndex];
+            chat.botEnabled = !chat.botEnabled;
+
+            const chk = document.getElementById(`bot-chk-${activeChatIndex}`);
+            chk.checked = chat.botEnabled;
+
+            const label = document.getElementById(`toggle-label-${activeChatIndex}`);
+            const tag = document.getElementById(`tag-${activeChatIndex}`);
+
+            if (chat.botEnabled) {
+                label.innerText = "Bot ON";
+                label.style.color = "var(--emerald)";
+                chat.tag = "Caliente";
+                tag.className = "lead-tag tag-hot";
+                tag.innerText = "Caliente";
+            } else {
+                label.innerText = "Manual";
+                label.style.color = "var(--rose)";
+                chat.tag = "Derivado";
+                tag.className = "lead-tag tag-deriv";
+                tag.innerText = "Derivado";
+            }
+
+            renderMessages();
+        }
+
+        function sendManualMessage() {
+            const input = document.getElementById("manual-input");
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chat = mockChats[activeChatIndex];
+            
+            // Si el bot estaba encendido, apagarlo automáticamente ya que escribimos de forma manual
+            if (chat.botEnabled) {
+                chat.botEnabled = false;
+                const chk = document.getElementById(`bot-chk-${activeChatIndex}`);
+                chk.checked = false;
+                const label = document.getElementById(`toggle-label-${activeChatIndex}`);
+                const tag = document.getElementById(`tag-${activeChatIndex}`);
+                label.innerText = "Manual";
+                label.style.color = "var(--rose)";
+                chat.tag = "Derivado";
+                tag.className = "lead-tag tag-deriv";
+                tag.innerText = "Derivado";
+            }
+
+            chat.messages.push({
+                role: "bot",
+                text: text,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+
+            // Update previews
+            document.getElementById(`preview-${activeChatIndex}`).innerText = text;
+
+            input.value = "";
+            renderMessages();
+        }
+
+        function addRule() {
+            const area = document.getElementById("new-rule-text");
+            const text = area.value.trim();
+            if (!text) return;
+
+            const container = document.getElementById("rules-container");
+            
+            const div = document.createElement("div");
+            div.className = "rule-item";
+            
+            const spanText = document.createElement("span");
+            spanText.innerText = "• " + text;
+            div.appendChild(spanText);
+            
+            const spanDel = document.createElement("span");
+            spanDel.className = "delete-rule";
+            spanDel.innerHTML = "&times;";
+            spanDel.onclick = function() { deleteRule(this); };
+            div.appendChild(spanDel);
+
+            container.prepend(div);
+            area.value = "";
+            alert("¡IA Entrenada de forma exitosa! Hancita aplicará esta nueva regla de negocio a partir de la próxima respuesta.");
+        }
+
+        function deleteRule(el) {
+            el.parentElement.remove();
+        }
+
+        function simulateUpload(type) {
+            alert(`Simulación: cargando Excel de Stock ${type} en el sistema. Los datos de neumáticos, CAI, precios y cantidades se cruzarán automáticamente con el catálogo principal.`);
+        }
+
+        // Carga inicial
+        renderMessages();
+    </script>
+</body>
+</html>

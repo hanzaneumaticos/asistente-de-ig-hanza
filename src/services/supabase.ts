@@ -1,0 +1,189 @@
+import { createClient } from "@supabase/supabase-js";
+import * as dotenv from "dotenv";
+
+dotenv.config();
+
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_KEY || "";
+
+if (!supabaseUrl || !supabaseKey) {
+  console.warn("Supabase URL or Key is missing in environment variables.");
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+export class SupabaseService {
+  // --- CONVERSATIONS ---
+  async getOrCreateConversation(contactId: string, platform: 'whatsapp' | 'instagram', contactName?: string) {
+    try {
+      // Intentar buscar conversación existente
+      const { data: existing, error: searchError } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("contact_id", contactId)
+        .eq("platform", platform)
+        .maybeSingle();
+
+      if (searchError) throw searchError;
+      if (existing) return existing;
+
+      // Crear nueva conversación si no existe
+      const { data: created, error: insertError } = await supabase
+        .from("conversations")
+        .insert({
+          contact_id: contactId,
+          platform,
+          contact_name: contactName || null,
+          bot_enabled: true
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      return created;
+    } catch (error) {
+      console.error("Error in getOrCreateConversation:", error);
+      return null;
+    }
+  }
+
+  async updateConversationDetails(id: string, updates: { vehicle_info?: string; tire_size_searched?: string; bot_enabled?: boolean }) {
+    try {
+      const { data, error } = await supabase
+        .from("conversations")
+        .update({
+          ...updates,
+          last_message_at: new Date().toISOString()
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error updating conversation details:", error);
+      return null;
+    }
+  }
+
+  // --- MESSAGES ---
+  async saveMessage(conversationId: string, role: 'user' | 'assistant' | 'system_log', content: string, messageType: string = 'text') {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: conversationId,
+          role,
+          content,
+          message_type: messageType
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Actualizar timestamp de la conversación
+      await supabase
+        .from("conversations")
+        .update({ last_message_at: new Date().toISOString() })
+        .eq("id", conversationId);
+
+      return data;
+    } catch (error) {
+      console.error("Error saving message:", error);
+      return null;
+    }
+  }
+
+  async getMessageHistory(conversationId: string, limit: number = 10) {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true })
+        .limit(limit);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Error getting message history:", error);
+      return [];
+    }
+  }
+
+  // --- MESSAGE QUEUE (DELAYS) ---
+  async addToQueue(conversationId: string, text: string, delaySeconds: number) {
+    try {
+      const scheduledFor = new Date(Date.now() + delaySeconds * 1000).toISOString();
+      const { data, error } = await supabase
+        .from("message_queue")
+        .insert({
+          conversation_id: conversationId,
+          pending_text: text,
+          scheduled_for: scheduledFor,
+          is_processed: false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error adding to queue:", error);
+      return null;
+    }
+  }
+
+  async getPendingQueueMessages() {
+    try {
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("message_queue")
+        .select("*, conversations(contact_id, platform, bot_enabled)")
+        .eq("is_processed", false)
+        .lte("scheduled_for", now);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Error getting pending queue messages:", error);
+      return [];
+    }
+  }
+
+  async markQueueAsProcessed(queueId: string) {
+    try {
+      const { data, error } = await supabase
+        .from("message_queue")
+        .update({ is_processed: true })
+        .eq("id", queueId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error marking queue as processed:", error);
+      return null;
+    }
+  }
+
+  // --- KNOWLEDGE BASE ---
+  async getKnowledgeBase() {
+    try {
+      const { data, error } = await supabase
+        .from("knowledge_base")
+        .select("*");
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error("Error getting knowledge base:", error);
+      return [];
+    }
+  }
+}
+
+export const dbService = new SupabaseService();

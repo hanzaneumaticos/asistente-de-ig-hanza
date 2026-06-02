@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea/
+.vscode/
+.DS_Store
+src/test-webhook.ts
+src/read-db.ts
+src/read-karim.ts

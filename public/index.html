@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanza Sales Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .simulator-container {
+            width: 100%;
+            max-width: 500px;
+            height: 80vh;
+            background: var(--card);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .status {
+            font-size: 12px;
+            color: #10b981;
+        }
+        #chat-window {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .user-msg {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+        .bot-msg {
+            align-self: flex-start;
+            background: #334155;
+            color: #f1f5f9;
+            border-bottom-left-radius: 2px;
+        }
+        .input-area {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.2);
+        }
+        input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 10px;
+            color: white;
+            outline: none;
+        }
+        button {
+            background: var(--primary);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        button:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulator-container">
+        <div class="header" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="avatar">H</div>
+                <div>
+                    <div style="font-weight: 600;">Hancita (Ventas Hanza)</div>
+                    <div class="status" id="bot-status">● En línea (Usando GPT-4o)</div>
+                </div>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="delay-toggle" style="width: auto; margin: 0; cursor: pointer;">
+                <label for="delay-toggle" style="cursor: pointer; user-select: none;">Espera Humana (60s/30s)</label>
+            </div>
+        </div>
+        <div id="chat-window">
+            <div class="message bot-msg">¡Hola! ¿Cómo estás? Soy Hancita de Hanza Neumáticos. ¿En qué te puedo asesorar hoy? Contame qué camioneta o auto tenés, o qué medida de cubiertas estás buscando.</div>
+        </div>
+        <form class="input-area" id="chat-form">
+            <input type="text" id="user-input" placeholder="Escribe tu consulta..." autocomplete="off">
+            <button type="submit">Enviar</button>
+        </form>
+
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const delayToggle = document.getElementById('delay-toggle');
+        const botStatus = document.getElementById('bot-status');
+        let history = [];
+
+        function addMessage(text, role) {
+            const div = document.createElement('div');
+            div.className = `message ${role === 'user' ? 'user-msg' : 'bot-msg'}`;
+            div.innerText = text;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, 'user');
+            userInput.value = '';
+
+            const useRealDelay = false; // Desactivado por Karim
+            const delayTime = 100; // Respuesta instantánea
+
+            // Add typing indicator
+            const botThinking = document.createElement('div');
+            botThinking.className = 'message bot-msg';
+            botThinking.id = 'typing-indicator';
+            botThinking.innerText = 'Hancita está escribiendo...';
+            chatWindow.appendChild(botThinking);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            botStatus.innerText = '● Escribiendo...';
+            botStatus.style.color = '#eab308'; // Amarillo escribiendo
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, history, delayMs: delayTime })
+                });
+                const data = await response.json();
+                
+                botStatus.innerText = '● En línea (Usando GPT-4o)';
+                botStatus.style.color = '#10b981'; // Verde en línea
+
+                const indicator = document.getElementById('typing-indicator');
+                if (indicator) chatWindow.removeChild(indicator);
+                
+                // Procesamos cada uno de los mensajes secuencialmente con un delay mínimo
+                const responses = data.responses || [];
+                let fullResponseText = "";
+                
+                for (let i = 0; i < responses.length; i++) {
+                    const text = responses[i];
+                    addMessage(text, 'bot');
+                    fullResponseText += (fullResponseText ? "\n\n" : "") + text;
+                    
+                    // Delay mínimo y rápido entre mensajes (100ms)
+                    if (i < responses.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
+                
+                botStatus.innerText = '● En línea (Usando GPT-4o)';
+                botStatus.style.color = '#10b981';
+                
+                history.push({ role: 'user', content: message });
+                history.push({ role: 'assistant', content: fullResponseText });
+                if (history.length > 20) history = history.slice(-20);
+                
+            } catch (err) {
+                botStatus.innerText = '● En línea (Usando GPT-4o)';
+                botStatus.style.color = '#10b981';
+                const indicator = document.getElementById('typing-indicator');
+                if (indicator) chatWindow.removeChild(indicator);
+                addMessage('Hubo un error al conectar con el servidor.', 'bot');
+            }
+        });
+    </script>
+</body>
+</html>
