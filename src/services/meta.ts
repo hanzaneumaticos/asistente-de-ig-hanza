@@ -55,6 +55,20 @@ export class MetaService {
     }
   }
 
+  async getMediaUrl(mediaId: string): Promise<string> {
+    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() || "";
+    const url = `https://graph.facebook.com/${API_VERSION}/${mediaId}`;
+    try {
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${META_ACCESS_TOKEN}` }
+      });
+      return res.data.url;
+    } catch (error: any) {
+      console.error("Error fetching media URL from Meta:", error.response?.data || error.message);
+      throw error;
+    }
+  }
+
   async downloadMedia(url: string): Promise<Buffer> {
     const response = await axios.get(url, {
       headers: { Authorization: `Bearer ${META_ACCESS_TOKEN}` },
@@ -65,3 +79,4 @@ export class MetaService {
 }
 
 export const metaService = new MetaService();
+

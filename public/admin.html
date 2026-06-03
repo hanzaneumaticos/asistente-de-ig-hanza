@@ -720,74 +720,184 @@
 
     </div>
 
-    <!-- --- JS Interactivo Mock --- -->
+    <!-- --- JS Interactivo --- -->
     <script>
+        let conversations = [];
+        let activeConversationId = null;
         let activeChatIndex = 0;
 
-        const mockChats = [
-            {
-                name: "Karim (SW4)",
-                details: "Toyota SW4 | Busca: 265/65/17 | Scoring: 85%",
-                tag: "Caliente",
-                botEnabled: true,
-                messages: [
-                    { role: "user", text: "Hola, busco cubiertas para una SW4, ¿qué tenés?", time: "15:30" },
-                    { role: "bot", text: "¡Hola! Qué excelente camioneta. De fábrica suele venir con la medida 265/65 R17 o 265/60 R18. ¿Tenés colocada alguna de esas medidas actualmente?", time: "15:31" },
-                    { role: "user", text: "Sí, tiene la 265/65/17", time: "15:32" },
-                    { role: "bot", text: "Perfecto. Te comento que en esa medida tenemos una excelente opción en stock propio: la Michelin Primacy SUV, ideal para andar en asfalto con máximo confort y seguridad bajo la lluvia.", time: "15:33" },
-                    { role: "bot", text: "El precio promocional de contado efectivo es de $320.000 con el envío 100% gratuito a tu domicilio. ¿Te sirve que te reserve las 4?", time: "15:33" },
-                    { role: "user", text: "Uf, ¿y tenés disponible en Michelin Primacy SUV?", time: "15:34" }
-                ]
-            },
-            {
-                name: "Mariela (Amarok)",
-                details: "VW Amarok | Busca: 255/60/18 | Scoring: 60%",
-                tag: "Tibio",
-                botEnabled: true,
-                messages: [
-                    { role: "user", text: "Buenas, busco cotización para una Amarok", time: "15:10" },
-                    { role: "bot", text: "¡Hola! ¿Cómo estás? Con gusto te asesoro. Las Amarok suelen venir con medida 245/65 R17 o 255/60 R18 de fábrica. ¿Sabés cuál tenés colocada actualmente?", time: "15:11" },
-                    { role: "user", text: "Te confirmo que la medida que tengo es 255/60/18", time: "15:12" }
-                ]
-            },
-            {
-                name: "Gonzalo Fletera",
-                details: "Flotas de 12 Unidades | Derivado por Karim | Scoring: 95%",
-                tag: "Derivado",
-                botEnabled: false,
-                messages: [
-                    { role: "user", text: "Hola, necesito cotizar para cambiar las cubiertas de toda la flota de camionetas. Son 3 Hilux, es decir 12 cubiertas.", time: "14:20" },
-                    { role: "bot", text: "¡Hola Gonzalo! Qué bueno que nos contactes. Al ser una consulta corporativa por un lote grande de 12 cubiertas, ya mismo te derivo de forma preferencial con Karim, nuestro asesor principal, para que te arme una cotización a medida y con descuento por volumen.", time: "14:21" },
-                    { role: "user", text: "Hola, llamame cuando puedas por las 12 cubiertas", time: "14:22" }
-                ]
-            }
-        ];
+        // Auto-refresh interval (every 4 seconds)
+        setInterval(fetchConversationsSilently, 4000);
+        // Refresh messages of active chat (every 3 seconds)
+        setInterval(fetchActiveMessagesSilently, 3000);
 
-        function renderMessages() {
-            const container = document.getElementById("messages-window");
+        async function fetchConversations() {
+            try {
+                const res = await fetch("/api/conversations");
+                const data = await res.json();
+                conversations = data;
+                
+                // Actualizar contador
+                document.getElementById("chats-count").innerText = `${conversations.length} Chats`;
+                
+                renderChatList();
+                
+                // Seleccionar primer chat si no hay ninguno seleccionado
+                if (conversations.length > 0 && !activeConversationId) {
+                    selectChat(0);
+                } else if (activeConversationId) {
+                    const currentIdx = conversations.findIndex(c => c.id === activeConversationId);
+                    if (currentIdx !== -1) {
+                        activeChatIndex = currentIdx;
+                        renderActiveChatDetails();
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching conversations:", err);
+            }
+        }
+
+        async function fetchConversationsSilently() {
+            try {
+                const res = await fetch("/api/conversations");
+                const data = await res.json();
+                conversations = data;
+                
+                document.getElementById("chats-count").innerText = `${conversations.length} Chats`;
+                
+                // Re-renderizar la lista de chats manteniendo la selección
+                const container = document.getElementById("chat-list-container");
+                const currentScroll = container.scrollTop;
+                renderChatList();
+                container.scrollTop = currentScroll;
+            } catch (err) {
+                console.error("Error refreshing conversations:", err);
+            }
+        }
+
+        async function fetchActiveMessagesSilently() {
+            if (!activeConversationId) return;
+            try {
+                const res = await fetch(`/api/conversations/${activeConversationId}/messages`);
+                const messages = await res.json();
+                
+                // Verificar si hay nuevos mensajes antes de re-scrollear
+                const container = document.getElementById("messages-window");
+                const wasAtBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+                
+                renderMessages(messages);
+                
+                if (wasAtBottom) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            } catch (err) {
+                console.error("Error refreshing messages:", err);
+            }
+        }
+
+        function renderChatList() {
+            const container = document.getElementById("chat-list-container");
             container.innerHTML = "";
-            const chat = mockChats[activeChatIndex];
-            
-            chat.messages.forEach(msg => {
+
+            conversations.forEach((chat, index) => {
+                const isActive = chat.id === activeConversationId;
+                const isBotOn = chat.bot_enabled;
+                
                 const div = document.createElement("div");
-                div.className = `msg-bubble ${msg.role === 'user' ? 'msg-user' : 'msg-bot'}`;
+                div.className = `chat-item ${isActive ? 'active' : ''}`;
+                div.onclick = () => selectChat(index);
+
+                // Determinar el tag de scoring / leads
+                let scoringTag = "Frío";
+                let tagClass = "tag-cold";
                 
-                const textDiv = document.createElement("div");
-                textDiv.innerText = msg.text;
-                div.appendChild(textDiv);
+                if (chat.vehicle_info && chat.tire_size_searched) {
+                    scoringTag = "Caliente";
+                    tagClass = "tag-hot";
+                } else if (chat.vehicle_info || chat.tire_size_searched) {
+                    scoringTag = "Tibio";
+                    tagClass = "tag-warm";
+                }
                 
-                const infoDiv = document.createElement("div");
-                infoDiv.className = "msg-info";
-                infoDiv.innerText = msg.time;
-                div.appendChild(infoDiv);
-                
+                if (!isBotOn) {
+                    scoringTag = "Derivado";
+                    tagClass = "tag-deriv";
+                }
+
+                // Último mensaje (simularemos una vista previa)
+                const lastMsgText = chat.tire_size_searched ? `Buscó: ${chat.tire_size_searched}` : (chat.vehicle_info ? `Vehículo: ${chat.vehicle_info}` : "Conversación iniciada");
+                const timeDiffStr = getTimeDiffString(chat.last_message_at);
+
+                div.innerHTML = `
+                    <div class="chat-info">
+                        <div class="chat-name">${chat.contact_name || chat.contact_id} (${chat.platform === 'whatsapp' ? 'WA' : 'IG'})</div>
+                        <div class="chat-time">${timeDiffStr}</div>
+                    </div>
+                    <div class="chat-preview" id="preview-${index}">${lastMsgText}</div>
+                    <div class="chat-footer">
+                        <span class="lead-tag ${tagClass}" id="tag-${index}">${scoringTag}</span>
+                        <div class="bot-toggle-container">
+                            <span class="switch-label" id="toggle-label-${index}" style="color: ${isBotOn ? 'var(--emerald)' : 'var(--rose)'};">${isBotOn ? 'Bot ON' : 'Manual'}</span>
+                            <label class="switch">
+                                <input type="checkbox" ${isBotOn ? 'checked' : ''} id="bot-chk-${index}" onchange="toggleBot(${index}, event)">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+
                 container.appendChild(div);
             });
-            container.scrollTop = container.scrollHeight;
+        }
 
-            // Render takeover button state
+        function getTimeDiffString(timestamp) {
+            if (!timestamp) return "N/A";
+            const now = new Date();
+            const last = new Date(timestamp);
+            const diffMs = now - last;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return "Hace instantes";
+            if (diffMins < 60) return `Hace ${diffMins} min`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `Hace ${diffHours} hr${diffHours > 1 ? 's' : ''}`;
+            return last.toLocaleDateString();
+        }
+
+        async function selectChat(index) {
+            if (index < 0 || index >= conversations.length) return;
+            activeChatIndex = index;
+            activeConversationId = conversations[index].id;
+
+            // Marcar activo en la UI
+            const items = document.querySelectorAll(".chat-item");
+            items.forEach((item, idx) => {
+                if (idx === index) item.classList.add("active");
+                else item.classList.remove("active");
+            });
+
+            renderActiveChatDetails();
+            await fetchActiveMessagesSilently();
+            
+            // Forzar scroll al fondo en la primera carga del chat
+            const container = document.getElementById("messages-window");
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function renderActiveChatDetails() {
+            const chat = conversations[activeChatIndex];
+            if (!chat) return;
+
+            document.getElementById("current-chat-name").innerText = `${chat.contact_name || chat.contact_id} (${chat.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram'})`;
+            
+            let details = `ID: ${chat.contact_id}`;
+            if (chat.vehicle_info) details += ` | Vehículo: ${chat.vehicle_info}`;
+            if (chat.tire_size_searched) details += ` | Medida: ${chat.tire_size_searched}`;
+            
+            document.getElementById("current-chat-details").innerText = details;
+
             const takeoverBtn = document.getElementById("takeover-btn");
-            if (!chat.botEnabled) {
+            if (!chat.bot_enabled) {
                 takeoverBtn.innerText = "Control Manual Activo (IA Apagada)";
                 takeoverBtn.classList.add("active");
             } else {
@@ -796,112 +906,107 @@
             }
         }
 
-        function selectChat(index) {
-            activeChatIndex = index;
-            
-            // Remove active classes
-            const items = document.querySelectorAll(".chat-item");
-            items.forEach((item, idx) => {
-                if (idx === index) item.classList.add("active");
-                else item.classList.remove("active");
+        function renderMessages(messages) {
+            const container = document.getElementById("messages-window");
+            container.innerHTML = "";
+
+            messages.forEach(msg => {
+                const div = document.createElement("div");
+                const isUser = msg.role === 'user';
+                div.className = `msg-bubble ${isUser ? 'msg-user' : 'msg-bot'}`;
+
+                const textDiv = document.createElement("div");
+                textDiv.innerText = msg.content;
+                div.appendChild(textDiv);
+
+                const infoDiv = document.createElement("div");
+                infoDiv.className = "msg-info";
+                const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                infoDiv.innerText = time;
+                div.appendChild(infoDiv);
+
+                container.appendChild(div);
             });
-
-            const chat = mockChats[index];
-            document.getElementById("current-chat-name").innerText = chat.name;
-            document.getElementById("current-chat-details").innerText = chat.details;
-
-            renderMessages();
         }
 
-        function toggleBot(index, event) {
+        async function toggleBot(index, event) {
+            if (event) event.stopPropagation();
+            const chat = conversations[index];
             const chk = document.getElementById(`bot-chk-${index}`);
-            const label = document.getElementById(`toggle-label-${index}`);
-            const tag = document.getElementById(`tag-${index}`);
-            
-            mockChats[index].botEnabled = chk.checked;
-            
-            if (chk.checked) {
-                label.innerText = "Bot ON";
-                label.style.color = "var(--emerald)";
-                if (mockChats[index].tag === "Derivado") {
-                    mockChats[index].tag = "Caliente";
-                    tag.className = "lead-tag tag-hot";
-                    tag.innerText = "Caliente";
+            const isChecked = chk.checked;
+
+            try {
+                const res = await fetch(`/api/conversations/${chat.id}/toggle-bot`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bot_enabled: isChecked })
+                });
+                const updated = await res.json();
+                conversations[index].bot_enabled = updated.bot_enabled;
+                
+                renderChatList();
+                if (chat.id === activeConversationId) {
+                    renderActiveChatDetails();
                 }
-            } else {
-                label.innerText = "Manual";
-                label.style.color = "var(--rose)";
-                mockChats[index].tag = "Derivado";
-                tag.className = "lead-tag tag-deriv";
-                tag.innerText = "Derivado";
+            } catch (err) {
+                console.error("Error toggling bot status:", err);
             }
-
-            if (index === activeChatIndex) {
-                renderMessages();
-            }
-            event.stopPropagation();
         }
 
-        function manualTakeover() {
-            const chat = mockChats[activeChatIndex];
-            chat.botEnabled = !chat.botEnabled;
-
-            const chk = document.getElementById(`bot-chk-${activeChatIndex}`);
-            chk.checked = chat.botEnabled;
-
-            const label = document.getElementById(`toggle-label-${activeChatIndex}`);
-            const tag = document.getElementById(`tag-${activeChatIndex}`);
-
-            if (chat.botEnabled) {
-                label.innerText = "Bot ON";
-                label.style.color = "var(--emerald)";
-                chat.tag = "Caliente";
-                tag.className = "lead-tag tag-hot";
-                tag.innerText = "Caliente";
-            } else {
-                label.innerText = "Manual";
-                label.style.color = "var(--rose)";
-                chat.tag = "Derivado";
-                tag.className = "lead-tag tag-deriv";
-                tag.innerText = "Derivado";
+        async function manualTakeover() {
+            const chat = conversations[activeChatIndex];
+            if (!chat) return;
+            const newBotEnabled = !chat.bot_enabled;
+            
+            try {
+                const res = await fetch(`/api/conversations/${chat.id}/toggle-bot`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bot_enabled: newBotEnabled })
+                });
+                const updated = await res.json();
+                conversations[activeChatIndex].bot_enabled = updated.bot_enabled;
+                
+                renderChatList();
+                renderActiveChatDetails();
+            } catch (err) {
+                console.error("Error in manual takeover:", err);
             }
-
-            renderMessages();
         }
 
-        function sendManualMessage() {
+        async function sendManualMessage() {
             const input = document.getElementById("manual-input");
             const text = input.value.trim();
-            if (!text) return;
+            if (!text || !activeConversationId) return;
 
-            const chat = mockChats[activeChatIndex];
-            
-            // Si el bot estaba encendido, apagarlo automáticamente ya que escribimos de forma manual
-            if (chat.botEnabled) {
-                chat.botEnabled = false;
-                const chk = document.getElementById(`bot-chk-${activeChatIndex}`);
-                chk.checked = false;
-                const label = document.getElementById(`toggle-label-${activeChatIndex}`);
-                const tag = document.getElementById(`tag-${activeChatIndex}`);
-                label.innerText = "Manual";
-                label.style.color = "var(--rose)";
-                chat.tag = "Derivado";
-                tag.className = "lead-tag tag-deriv";
-                tag.innerText = "Derivado";
+            input.value = ""; // Limpiar rápido para mejor UX
+
+            try {
+                const res = await fetch(`/api/conversations/${activeConversationId}/send-manual`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: text })
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    // Refrescar localmente
+                    await fetchActiveMessagesSilently();
+                    await fetchConversationsSilently();
+                } else {
+                    alert("Error al enviar el mensaje: " + result.error);
+                }
+            } catch (err) {
+                console.error("Error sending manual message:", err);
             }
-
-            chat.messages.push({
-                role: "bot",
-                text: text,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-
-            // Update previews
-            document.getElementById(`preview-${activeChatIndex}`).innerText = text;
-
-            input.value = "";
-            renderMessages();
         }
+
+        // Permitir presionar Enter para enviar mensaje
+        document.getElementById("manual-input").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                sendManualMessage();
+            }
+        });
 
         function addRule() {
             const area = document.getElementById("new-rule-text");
@@ -937,7 +1042,7 @@
         }
 
         // Carga inicial
-        renderMessages();
+        fetchConversations();
     </script>
 </body>
 </html>

@@ -19,18 +19,20 @@ REGLAS DE ORO DE NEGOCIO:
 3. DOBLE STOCK: Si buscas una cubierta y no hay en nuestro stock principal, revisa si está en el stock de fábrica. Si solo hay stock en fábrica, indícale al cliente con total naturalidad que demorará entre 2 y 3 días hábiles en llegarnos al depósito para su posterior entrega bonificada.
 
 REGLAS DE ASESORAMIENTO Y DIÁLOGO:
-1. DETECCIÓN DE VEHÍCULO: Si el cliente te menciona el modelo de su camioneta o vehículo, debes sugerir de inmediato la medida estándar del mismo y confirmar educadamente si es la que está buscando. Aquí tienes las equivalencias de fábrica más comunes de Argentina:
-   - Toyota SW4 / Hilux: 265/65 R17 (estándar común) o 265/60 R18 (en versiones más nuevas).
+1. RESPUESTAS MUY CORTAS Y AL GRANO (CRÍTICO): La gente no lee textos largos en WhatsApp. Tus respuestas deben ser súper concisas, directas y amigables. Limítate a un máximo de 1 o 2 párrafos cortos por mensaje. Si cotizás neumáticos, listá como máximo 2 o 3 opciones de forma muy resumida (ej: 'Michelin Primacy 4+: $227,546 c/u de contado o en 6 cuotas de ...'), sin rodeos ni explicaciones técnicas a menos que te las pidan.
+2. DETECCIÓN DE VEHÍCULO: Si el cliente te menciona el modelo de su camioneta o vehículo, debes sugerir de inmediato la medida estándar del mismo y confirmar educadamente si es la que está buscando. Aquí tienes las equivalencias de fábrica más comunes de Argentina:
+   - Toyota SW4 / Hilux: 265/65 R17 o 265/60 R18.
    - Volkswagen Amarok: 245/65 R17, 255/60 R18 o 255/50 R20.
    - Ford Ranger: 265/65 R17, 255/70 R16 o 265/60 R18.
    - Chevrolet S10: 265/60 R18 o 245/70 R16.
    - Renault Alaskan / Nissan Frontier: 255/60 R18 o 255/70 R16.
    Si te menciona alguna de estas camionetas, dile por ejemplo: "Excelente vehículo. De fábrica suele venir con la medida [medida estándar]. ¿Tenés colocada esa medida actualmente o estás buscando otra para cambiar?".
-2. CLIENTE NO SABE LA MEDIDA: Si el cliente no sabe qué medida tiene colocada su camioneta, pídele cordialmente que le saque una foto al lateral/costado de su cubierta actual donde figuren grabados los números (ancho/perfil/llanta) y te la envíe por acá para fijarte y asesorarlo perfectamente.
-3. BÚSQUEDA Y PRECIOS: Utiliza la herramienta "buscar_neumaticos" para ver el stock. Cotiza siempre con amabilidad ofreciendo las opciones disponibles (menciona el precio de contado como un precio especial bonificado en efectivo, y también la opción en 6 cuotas o con tarjeta).
-4. DERIVACIÓN A KARIM: Si detectas molestia en el cliente, si te solicita hablar por teléfono ("llamame", "¿te puedo llamar?"), si consulta por 8 o más cubiertas (flota), o si está decidido a realizar el pago o coordinar la reserva, indícale amablemente que ya mismo lo derivás con Karim (el encargado principal de ventas) para finalizar todo por teléfono o chat privado de forma preferencial.
-5. REGISTRO DE DATOS: Siempre que el cliente te mencione el modelo/año de su vehículo o la medida de neumático que busca, debés llamar inmediatamente a la herramienta "actualizar_datos_cliente" para registrar esta información en la base de datos.
+3. CLIENTE NO SABE LA MEDIDA Y FOTOS: NO pidas fotos de neumáticos de entrada, ni si el cliente ya te dijo la medida o el modelo de su vehículo. ÚNICAMENTE debés sugerirle enviar una foto si el cliente te manifiesta de forma explícita que NO sabe qué medida tiene colocada y no tiene forma de leerla en la cubierta. En ese caso, pídele cordialmente que le saque una foto al lateral/costado de su cubierta actual donde figuren grabados los números (ancho/perfil/llanta) y te la envíe.
+4. BÚSQUEDA Y PRECIOS: Utiliza la herramienta "buscar_neumaticos" para ver el stock. Cotiza siempre con amabilidad ofreciendo las opciones disponibles de forma simplificada.
+5. DERIVACIÓN A KARIM: Si detectas molestia en el cliente, si te solicita hablar por teléfono ("llamame", "¿te puedo llamar?"), si consulta por 8 o más cubiertas (flota), o si está decidido a realizar el pago o coordinar la reserva, indícale amablemente que ya mismo lo derivás con Karim (el encargado principal de ventas) para finalizar todo por teléfono o chat privado de forma preferencial.
+6. REGISTRO DE DATOS: Siempre que el cliente te mencione el modelo/año de su vehículo o la medida de neumático que busca, debés llamar inmediatamente a la herramienta "actualizar_datos_cliente" para registrar esta información en la base de datos.
 `;
+
 
 export class OpenAIService {
   async generateResponse(userMessage: string, history: any[] = [], conversationId?: string) {
@@ -150,6 +152,39 @@ export class OpenAIService {
   async processAudio(audioBuffer: Buffer) {
     // Implementación futura
   }
+
+  async analyzeTireImage(imageBuffer: Buffer): Promise<string> {
+    try {
+      const base64Image = imageBuffer.toString("base64");
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { 
+                type: "text", 
+                text: "Analiza esta imagen de un neumático. Identifica la medida de neumático (por ejemplo: 205/55 R16, 265/65 R17, 175/65 R14, etc.) grabada en el lateral de la cubierta. Responde ÚNICAMENTE con la medida formateada si la encontrás de forma clara (ej. '205/55 R16'). Si no la podés leer con total seguridad y claridad, responde únicamente con 'NO_DETECTADO'." 
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Image}`,
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 20,
+      });
+
+      return response.choices[0].message.content?.trim() || "NO_DETECTADO";
+    } catch (error) {
+      console.error("Error analyzing tire image with OpenAI:", error);
+      return "NO_DETECTADO";
+    }
+  }
 }
 
 export const aiService = new OpenAIService();
+

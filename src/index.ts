@@ -5,7 +5,7 @@ import path from "path";
 import * as dotenv from "dotenv";
 import { aiService } from "./services/openai";
 import { metaService } from "./services/meta";
-import { dbService } from "./services/supabase";
+import { dbService, supabase } from "./services/supabase";
 
 dotenv.config();
 
@@ -234,6 +234,59 @@ app.post("/webhook", async (req, res) => {
           await metaService.sendWhatsAppMessage(from, "He recibido tu audio, dame un segundo que lo escucho...");
           
           // Transcripción futura e integración Whisper vendrán aquí
+        } else if (type === "image") {
+          console.log(`WhatsApp image from ${from}`);
+          await dbService.saveMessage(conv.id, "user", "[Envió una imagen]", "image");
+          
+          const mediaId = message.image?.id;
+          if (mediaId) {
+            try {
+              // Obtener URL de la imagen y descargarla
+              const imageUrl = await metaService.getMediaUrl(mediaId);
+              const imageBuffer = await metaService.downloadMedia(imageUrl);
+              
+              // Analizar imagen con GPT-4o Vision
+              const detectedSize = await aiService.analyzeTireImage(imageBuffer);
+              console.log(`OpenAI detected tire size: ${detectedSize}`);
+              
+              if (detectedSize && detectedSize !== "NO_DETECTADO") {
+                // Notificar al cliente que se detectó la medida
+                await metaService.sendWhatsAppMessage(
+                  from,
+                  `¡Buenísimo! Detecté que tu neumático es medida *${detectedSize}* en la foto. Dejame buscarte las opciones disponibles...`
+                );
+                
+                // Actualizar la conversación en Supabase
+                await dbService.updateConversationDetails(conv.id, { tire_size_searched: detectedSize });
+                
+                // Simular respuesta usando la medida detectada
+                const dbHistory = await dbService.getMessageHistory(conv.id, 15);
+                const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
+                
+                // Guardar y enviar la respuesta
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                const individualResponses = splitIntoMessages(aiResponse || "");
+                for (let i = 0; i < individualResponses.length; i++) {
+                  await metaService.sendWhatsAppMessage(from, individualResponses[i]);
+                  if (i < individualResponses.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                  }
+                }
+              } else {
+                // No detectado
+                await metaService.sendWhatsAppMessage(
+                  from,
+                  "No logré ver con total claridad la medida grabada en el lateral de la foto. ¿Me la podrías escribir por acá? (Ejemplo: 205/55 R16)."
+                );
+              }
+            } catch (err) {
+              console.error("Error processing WhatsApp image with vision:", err);
+              await metaService.sendWhatsAppMessage(
+                from,
+                "Tuve un problema al procesar la imagen. ¿Me podrías escribir la medida por acá? (Ejemplo: 205/55 R16)."
+              );
+            }
+          }
         }
       } catch (error) {
         console.error("Error processing WhatsApp message:", error);
@@ -283,6 +336,51 @@ app.post("/webhook", async (req, res) => {
               await new Promise(resolve => setTimeout(resolve, 1500));
             }
           }
+        } else if (message.attachments) {
+          const imgAttachment = message.attachments.find((att: any) => att.type === "image");
+          if (imgAttachment) {
+            const imageUrl = imgAttachment.payload.url;
+            console.log(`IG image from ${senderId}: ${imageUrl}`);
+            await dbService.saveMessage(conv.id, "user", "[Envió una imagen]", "image");
+            
+            try {
+              const imageBuffer = await metaService.downloadMedia(imageUrl);
+              const detectedSize = await aiService.analyzeTireImage(imageBuffer);
+              console.log(`OpenAI detected tire size from IG image: ${detectedSize}`);
+              
+              if (detectedSize && detectedSize !== "NO_DETECTADO") {
+                await metaService.sendInstagramMessage(
+                  senderId,
+                  `¡Buenísimo! Detecté que tu neumático es medida *${detectedSize}* en la foto. Dejame buscarte las opciones disponibles...`
+                );
+                
+                await dbService.updateConversationDetails(conv.id, { tire_size_searched: detectedSize });
+                
+                const dbHistory = await dbService.getMessageHistory(conv.id, 15);
+                const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                
+                const individualResponses = splitIntoMessages(aiResponse || "");
+                for (let i = 0; i < individualResponses.length; i++) {
+                  await metaService.sendInstagramMessage(senderId, individualResponses[i]);
+                  if (i < individualResponses.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                  }
+                }
+              } else {
+                await metaService.sendInstagramMessage(
+                  senderId,
+                  "No logré ver con total claridad la medida grabada en el lateral de la foto. ¿Me la podrías escribir por acá? (Ejemplo: 205/55 R16)."
+                );
+              }
+            } catch (err) {
+              console.error("Error processing IG image with vision:", err);
+              await metaService.sendInstagramMessage(
+                senderId,
+                "Tuve un problema al procesar la imagen. ¿Me podrías escribir la medida por acá? (Ejemplo: 205/55 R16)."
+              );
+            }
+          }
         }
       } catch (error) {
         console.error("Error processing IG message:", error);
@@ -292,6 +390,83 @@ app.post("/webhook", async (req, res) => {
   }
 
   res.sendStatus(404);
+});
+
+// --- ADMIN API ENDPOINTS ---
+app.get("/api/conversations", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("*")
+      .order("last_message_at", { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/conversations/:id/messages", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", req.params.id)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/conversations/:id/toggle-bot", async (req, res) => {
+  const { bot_enabled } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from("conversations")
+      .update({ bot_enabled })
+      .eq("id", req.params.id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/conversations/:id/send-manual", async (req, res) => {
+  const { message } = req.body;
+  try {
+    const { data: conv, error: convErr } = await supabase
+      .from("conversations")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+    if (convErr || !conv) throw new Error("Conversación no encontrada.");
+
+    // 1. Silenciar el bot para esta conversación
+    await supabase
+      .from("conversations")
+      .update({ bot_enabled: false })
+      .eq("id", req.params.id);
+
+    // 2. Guardar mensaje manual en la base de datos
+    await dbService.saveMessage(req.params.id, "assistant", message);
+
+    // 3. Enviar mensaje a Meta según plataforma
+    if (conv.platform === "whatsapp") {
+      await metaService.sendWhatsAppMessage(conv.contact_id, message);
+    } else if (conv.platform === "instagram") {
+      await metaService.sendInstagramMessage(conv.contact_id, message);
+    }
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error("Error sending manual message:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.listen(PORT, () => {
