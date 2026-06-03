@@ -121,7 +121,7 @@ export class OpenAIService {
               if (tire_size_searched) updates.tire_size_searched = tire_size_searched;
 
               if (Object.keys(updates).length > 0) {
-                const updated = await dbService.updateConversationDetails(conversationId, updates);
+                const updated = await dbService.appendConversationDetails(conversationId, updates);
                 if (updated) success = true;
               }
             }
@@ -182,6 +182,24 @@ export class OpenAIService {
     } catch (error) {
       console.error("Error analyzing tire image with OpenAI:", error);
       return "NO_DETECTADO";
+    }
+  }
+
+  async transcribeAudio(audioBuffer: Buffer, mimeType: string = "audio/ogg"): Promise<string> {
+    try {
+      const extension = mimeType.includes("mp3") ? "mp3" : mimeType.includes("m4a") ? "m4a" : "ogg";
+      const file = await OpenAI.toFile(audioBuffer, `audio.${extension}`, { type: mimeType });
+      
+      const transcription = await openai.audio.transcriptions.create({
+        file: file,
+        model: "whisper-1",
+        language: "es",
+      });
+
+      return transcription.text || "";
+    } catch (error) {
+      console.error("Error transcribing audio with Whisper:", error);
+      throw error;
     }
   }
 }

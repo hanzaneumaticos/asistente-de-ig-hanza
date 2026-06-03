@@ -47,6 +47,54 @@ export class SupabaseService {
     }
   }
 
+  async getConversation(id: string) {
+    try {
+      const { data, error } = await supabase
+        .from("conversations")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error in getConversation:", error);
+      return null;
+    }
+  }
+
+  async appendConversationDetails(id: string, updates: { vehicle_info?: string; tire_size_searched?: string }) {
+    try {
+      const current = await this.getConversation(id);
+      const finalUpdates: any = {};
+
+      if (updates.vehicle_info) {
+        const currentVehicles = current?.vehicle_info ? current.vehicle_info.split(",").map((v: string) => v.trim()) : [];
+        const newVehicle = updates.vehicle_info.trim();
+        if (newVehicle && !currentVehicles.includes(newVehicle)) {
+          currentVehicles.push(newVehicle);
+          finalUpdates.vehicle_info = currentVehicles.join(", ");
+        }
+      }
+
+      if (updates.tire_size_searched) {
+        const currentSizes = current?.tire_size_searched ? current.tire_size_searched.split(",").map((s: string) => s.trim()) : [];
+        const newSize = updates.tire_size_searched.trim();
+        if (newSize && !currentSizes.includes(newSize)) {
+          currentSizes.push(newSize);
+          finalUpdates.tire_size_searched = currentSizes.join(", ");
+        }
+      }
+
+      if (Object.keys(finalUpdates).length > 0) {
+        return await this.updateConversationDetails(id, finalUpdates);
+      }
+      return current;
+    } catch (error) {
+      console.error("Error in appendConversationDetails:", error);
+      return null;
+    }
+  }
+
   async updateConversationDetails(id: string, updates: { vehicle_info?: string; tire_size_searched?: string; bot_enabled?: boolean }) {
     try {
       const { data, error } = await supabase
@@ -102,11 +150,11 @@ export class SupabaseService {
         .from("messages")
         .select("role, content")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-      return data || [];
+      return (data || []).reverse();
     } catch (error) {
       console.error("Error getting message history:", error);
       return [];

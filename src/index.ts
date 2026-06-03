@@ -103,8 +103,8 @@ function extractAndSaveDetails(conversationId: string, text: string) {
       const updates: any = {};
       if (tire_size_searched) updates.tire_size_searched = tire_size_searched;
       if (vehicle_info) updates.vehicle_info = vehicle_info;
-      dbService.updateConversationDetails(conversationId, updates).catch(err => {
-        console.error("Error in background updateConversationDetails:", err);
+      dbService.appendConversationDetails(conversationId, updates).catch(err => {
+        console.error("Error in background appendConversationDetails:", err);
       });
     }
   } catch (err) {
@@ -230,10 +230,41 @@ app.post("/webhook", async (req, res) => {
 
         } else if (type === "audio") {
           console.log(`WhatsApp audio from ${from}`);
-          await dbService.saveMessage(conv.id, "user", "[Envió una nota de voz]", "audio");
           await metaService.sendWhatsAppMessage(from, "He recibido tu audio, dame un segundo que lo escucho...");
           
-          // Transcripción futura e integración Whisper vendrán aquí
+          const mediaId = message.audio?.id;
+          const mimeType = message.audio?.mime_type || "audio/ogg";
+          
+          if (mediaId) {
+            try {
+              const audioUrl = await metaService.getMediaUrl(mediaId);
+              const audioBuffer = await metaService.downloadMedia(audioUrl);
+              const transcription = await aiService.transcribeAudio(audioBuffer, mimeType);
+              console.log(`Whisper transcription: "${transcription}"`);
+              
+              if (transcription && transcription.trim().length > 0) {
+                await dbService.saveMessage(conv.id, "user", `[Audio]: ${transcription}`, "audio");
+                extractAndSaveDetails(conv.id, transcription);
+                
+                const dbHistory = await dbService.getMessageHistory(conv.id, 15);
+                const aiResponse = await aiService.generateResponse(transcription, dbHistory, conv.id);
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                
+                const individualResponses = splitIntoMessages(aiResponse || "");
+                for (let i = 0; i < individualResponses.length; i++) {
+                  await metaService.sendWhatsAppMessage(from, individualResponses[i]);
+                  if (i < individualResponses.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                  }
+                }
+              } else {
+                await metaService.sendWhatsAppMessage(from, "Disculpá, no logré escuchar bien tu audio. ¿Me lo podrías escribir en texto?");
+              }
+            } catch (err) {
+              console.error("Error processing WhatsApp audio with Whisper:", err);
+              await metaService.sendWhatsAppMessage(from, "Disculpá, tuve un problema al escuchar tu nota de voz. ¿Me la podrías escribir en texto?");
+            }
+          }
         } else if (type === "image") {
           console.log(`WhatsApp image from ${from}`);
           await dbService.saveMessage(conv.id, "user", "[Envió una imagen]", "image");
@@ -256,8 +287,8 @@ app.post("/webhook", async (req, res) => {
                   `¡Buenísimo! Detecté que tu neumático es medida *${detectedSize}* en la foto. Dejame buscarte las opciones disponibles...`
                 );
                 
-                // Actualizar la conversación en Supabase
-                await dbService.updateConversationDetails(conv.id, { tire_size_searched: detectedSize });
+                // Actualizar la conversación en Supabase (agregando la medida)
+                await dbService.appendConversationDetails(conv.id, { tire_size_searched: detectedSize });
                 
                 // Simular respuesta usando la medida detectada
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
@@ -338,6 +369,8 @@ app.post("/webhook", async (req, res) => {
           }
         } else if (message.attachments) {
           const imgAttachment = message.attachments.find((att: any) => att.type === "image");
+          const audioAttachment = message.attachments.find((att: any) => att.type === "audio" || att.type === "voice");
+          
           if (imgAttachment) {
             const imageUrl = imgAttachment.payload.url;
             console.log(`IG image from ${senderId}: ${imageUrl}`);
@@ -354,7 +387,7 @@ app.post("/webhook", async (req, res) => {
                   `¡Buenísimo! Detecté que tu neumático es medida *${detectedSize}* en la foto. Dejame buscarte las opciones disponibles...`
                 );
                 
-                await dbService.updateConversationDetails(conv.id, { tire_size_searched: detectedSize });
+                await dbService.appendConversationDetails(conv.id, { tire_size_searched: detectedSize });
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
@@ -379,6 +412,38 @@ app.post("/webhook", async (req, res) => {
                 senderId,
                 "Tuve un problema al procesar la imagen. ¿Me podrías escribir la medida por acá? (Ejemplo: 205/55 R16)."
               );
+            }
+          } else if (audioAttachment) {
+            const audioUrl = audioAttachment.payload.url;
+            console.log(`IG audio from ${senderId}: ${audioUrl}`);
+            await metaService.sendInstagramMessage(senderId, "He recibido tu audio, dame un segundo que lo escucho...");
+            
+            try {
+              const audioBuffer = await metaService.downloadMedia(audioUrl);
+              const transcription = await aiService.transcribeAudio(audioBuffer, "audio/m4a");
+              console.log(`OpenAI transcribed IG audio: ${transcription}`);
+              
+              if (transcription && transcription.trim().length > 0) {
+                await dbService.saveMessage(conv.id, "user", `[Audio]: ${transcription}`, "audio");
+                extractAndSaveDetails(conv.id, transcription);
+                
+                const dbHistory = await dbService.getMessageHistory(conv.id, 15);
+                const aiResponse = await aiService.generateResponse(transcription, dbHistory, conv.id);
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                
+                const individualResponses = splitIntoMessages(aiResponse || "");
+                for (let i = 0; i < individualResponses.length; i++) {
+                  await metaService.sendInstagramMessage(senderId, individualResponses[i]);
+                  if (i < individualResponses.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                  }
+                }
+              } else {
+                await metaService.sendInstagramMessage(senderId, "Disculpá, no logré escuchar bien tu audio. ¿Me lo podrías escribir en texto?");
+              }
+            } catch (err) {
+              console.error("Error processing IG audio with Whisper:", err);
+              await metaService.sendInstagramMessage(senderId, "Disculpá, tuve un problema al escuchar tu nota de voz. ¿Me la podrías escribir en texto?");
             }
           }
         }
