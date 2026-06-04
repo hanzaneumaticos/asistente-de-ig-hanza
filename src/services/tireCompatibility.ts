@@ -109,6 +109,31 @@ export const VEHICLE_TIRE_MAPPING: { [vehicle: string]: { [rim: number]: string[
   Civic: {
     16: ["205/55 R16"],
     17: ["215/50 R17"]
+  },
+  Trafic: {
+    14: ["185 R14", "195 R14", "185/80 R14"],
+    15: ["195/70 R15", "215/65 R15", "195/75 R15"],
+    16: ["215/65 R16", "205/65 R16"]
+  },
+  Kangoo: {
+    14: ["175/65 R14"],
+    15: ["185/65 R15", "185/60 R15"]
+  },
+  Partner: {
+    14: ["175/65 R14"],
+    15: ["185/65 R15", "195/55 R15"]
+  },
+  Berlingo: {
+    14: ["175/65 R14"],
+    15: ["185/65 R15", "195/55 R15"]
+  },
+  Fiorino: {
+    13: ["165/70 R13"],
+    14: ["175/70 R14", "175/65 R14"]
+  },
+  Sprinter: {
+    15: ["195/70 R15"],
+    16: ["225/75 R16", "205/75 R16", "195/75 R16"]
   }
 };
 
@@ -144,6 +169,12 @@ export function detectVehicle(text: string): string | null {
   if (lower.includes("fiesta")) return "Fiesta";
   if (lower.includes("sandero")) return "Sandero";
   if (lower.includes("civic")) return "Civic";
+  if (lower.includes("trafic")) return "Trafic";
+  if (lower.includes("kangoo")) return "Kangoo";
+  if (lower.includes("partner")) return "Partner";
+  if (lower.includes("berlingo")) return "Berlingo";
+  if (lower.includes("fiorino")) return "Fiorino";
+  if (lower.includes("sprinter")) return "Sprinter";
 
   return null;
 }

@@ -89,7 +89,7 @@ function extractAndSaveDetails(conversationId: string, text: string) {
       tire_size_searched = `${tireMatch[1]}/${tireMatch[2]} R${tireMatch[3]}`.toUpperCase();
     }
 
-    const vehicles = ["corolla", "hilux", "sw4", "amarok", "ranger", "s10", "alaskan", "frontier", "toro", "cronos", "etios", "focus", "fiesta", "cruze", "tracker", "compass", "renegade", "duster", "sandero", "civic", "fit", "hr-v", "hrv", "golf", "vento", "polo"];
+    const vehicles = ["corolla", "hilux", "sw4", "amarok", "ranger", "s10", "alaskan", "frontier", "toro", "cronos", "etios", "focus", "fiesta", "cruze", "tracker", "compass", "renegade", "duster", "sandero", "civic", "fit", "hr-v", "hrv", "golf", "vento", "polo", "trafic", "fiorino", "partner", "berlingo", "kangoo", "sprinter", "transit", "ducato", "master", "boxer", "daily"];
     let vehicle_info = undefined;
     
     const textLower = text.toLowerCase();

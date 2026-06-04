@@ -29,14 +29,20 @@ REGLAS DE NEGOCIO Y COMPATIBILIDAD DE MEDIDAS (CRÍTICAS):
 2. ENVÍOS GRATIS: Todos los envíos son gratis a todo el país. Decilo de forma simple: "Hacemos envios gratis a todo el pais" o "Te incluí el envío en el precio".
 3. DOBLE STOCK: Si no hay en stock propio, deciles con naturalidad que demora 2 o 3 días hábiles en llegar de fábrica.
 4. COMPATIBILIDAD Y MEDIDAS:
+   - OBLIGACIÓN DE BÚSQUEDA REAL: NUNCA ofrezcas opciones de cubiertas, medidas, marcas, modelos o precios de memoria. Para responder cualquier consulta sobre cubiertas, marcas, precios o vehículos, debés llamar OBLIGATORIAMENTE a la herramienta "buscar_neumaticos" para corroborar qué es compatible y qué hay en stock en el catálogo antes de dar cualquier respuesta.
+   - Si el cliente te pregunta por cubiertas para un vehículo (ej: una Trafic, una Amarok o cualquier auto) pero no especifica la medida exacta de cubierta, lo primero que debés hacer es preguntarle amablemente si sabe qué medida tiene colocada actualmente (ej: "tenes idea que medida tiene puesta?", "sabes que medida de cubierta lleva ahora?").
+   - Si el cliente te responde indicando la medida, buscala directamente con la herramienta.
+   - Si el cliente te dice que no sabe la medida, ahí recién intentás averiguar:
+     - Si la camioneta está en el sistema y tiene medidas típicas registradas (provistas por la herramienta), decile las opciones.
+     - Si es un rodado o vehículo que no conocemos (la herramienta de búsqueda devuelve '{"escalate": true}'), debés responderle amistosamente que lo vas a consultar y en unos minutos le confirmás (ej: "dejame que consulte bien que medida lleva y te confirmo en un ratito!"). El bot se silenciará en segundo plano.
    - NUNCA inventes ni recomiendes medidas que no correspondan al vehículo del cliente.
-   - Si el cliente te da la medida o el rodado de su vehículo, la herramienta de búsqueda corroborará si es compatible.
-   - Si la herramienta "buscar_neumaticos" te responde con '{"escalate": true}', significa que no conocemos la medida para ese vehículo/rodado. Debés responderle amistosamente que lo vas a consultar y en unos minutos le confirmás (ej: "dejame que consulte que medida lleva esa camioneta con rodado 20 y te confirmo en un ratito!"). El bot se silenciará en segundo plano.
    - Si la herramienta te responde con '{"incompatible": true}', significa que esa medida no va en su vehículo. Debés decirle con tu tono relajado que esa medida no es la que lleva su camioneta y ofrecerle las que sí van (provistas por la herramienta).
    - Si no hay en stock la medida compatible exacta, no inventes ni ofrezcas otra medida incompatible. Decile con naturalidad que no te quedó stock de esa medida exacta.
 5. CLIENTE NO SABE LA MEDIDA: NO pidas fotos de entrada. Sugerí enviar foto solo si el cliente dice explícitamente que no sabe la medida y no la encuentra.
 6. DERIVACIÓN A KARIM: Si quiere pagar, reservar, hablar por teléfono, o si compra más de 8 cubiertas, indícale amablemente que lo derivás con Karim.
 7. REGISTRO DE DATOS: Siempre que te mencionen vehículo o medida, llamá a la herramienta "actualizar_datos_cliente".
+
+
 `;
 
 
@@ -83,6 +89,8 @@ export class OpenAIService {
                 type: "object",
                 properties: {
                   query: { type: "string", description: "Medida (ej: 255 55 19), rodado (ej: rodado 20) o modelo a buscar." },
+                  vehicle: { type: "string", description: "Marca y/o modelo del vehículo si fue mencionado (ej: 'Trafic', 'Amarok', 'Hilux')." },
+                  rim: { type: "integer", description: "Tamaño del rodado/llanta si fue mencionado (ej: 15, 20)." }
                 },
                 required: ["query"],
               },
@@ -120,17 +128,28 @@ export class OpenAIService {
             const query = args.query || "";
             
             // 1. Resolver contexto del vehículo y rodado
-            let detectedVeh = detectVehicle(query) || detectVehicle(userMessage);
-            let detectedR = detectRim(query) || detectRim(userMessage);
+            let argVeh = args.vehicle ? args.vehicle.trim() : null;
+            let argRim = args.rim ? parseInt(args.rim, 10) : null;
+            if (argRim && (argRim < 12 || argRim > 24)) argRim = null;
+
+            // Normalizar el vehículo si es reconocido, sino mantener la cadena cruda
+            let normalizedArgVeh = argVeh ? (detectVehicle(argVeh) || argVeh) : null;
+
+            let detectedVeh = normalizedArgVeh || detectVehicle(query) || detectVehicle(userMessage);
+            let detectedR = argRim || detectRim(query) || detectRim(userMessage);
+
+            const hasNewVehicleMention = !!argVeh || !!detectVehicle(query) || !!detectVehicle(userMessage);
+            const hasNewRimMention = !!argRim || !!detectRim(query) || !!detectRim(userMessage);
 
             if (conversationId) {
               try {
                 const conv = await dbService.getConversation(conversationId);
                 if (conv) {
-                  if (!detectedVeh && conv.vehicle_info) {
-                    detectedVeh = detectVehicle(conv.vehicle_info);
+                  // Solo usar base de datos si no se mencionó nada nuevo en el mensaje actual
+                  if (!detectedVeh && !hasNewVehicleMention && conv.vehicle_info) {
+                    detectedVeh = detectVehicle(conv.vehicle_info) || conv.vehicle_info;
                   }
-                  if (!detectedR && conv.tire_size_searched) {
+                  if (!detectedR && !hasNewRimMention && conv.tire_size_searched) {
                     detectedR = detectRim(conv.tire_size_searched);
                   }
                 }
@@ -140,7 +159,7 @@ export class OpenAIService {
             }
 
             // Buscar en el historial
-            if (!detectedVeh) {
+            if (!detectedVeh && !hasNewVehicleMention) {
               for (let i = history.length - 1; i >= 0; i--) {
                 const m = detectVehicle(history[i].content);
                 if (m) {
@@ -149,7 +168,7 @@ export class OpenAIService {
                 }
               }
             }
-            if (!detectedR) {
+            if (!detectedR && !hasNewRimMention) {
               for (let i = history.length - 1; i >= 0; i--) {
                 const r = detectRim(history[i].content);
                 if (r) {
@@ -189,8 +208,12 @@ export class OpenAIService {
                       detectedR,
                       `El cliente preguntó por medidas compatibles para una ${detectedVeh} con rodado ${detectedR}.`
                     );
-                    // Silenciar bot
-                    await dbService.updateConversationDetails(conversationId, { bot_enabled: false });
+                    // Silenciar bot y forzar que guarde el vehículo nuevo detectado en la DB para el panel
+                    await dbService.updateConversationDetails(conversationId, { 
+                      bot_enabled: false,
+                      vehicle_info: detectedVeh,
+                      tire_size_searched: detectedR ? `Rodado ${detectedR}` : undefined
+                    });
                   }
                 }
               } else {
