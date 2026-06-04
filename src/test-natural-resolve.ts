@@ -4,7 +4,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 async function runTest() {
-  console.log("=== PROBANDO PROCESAMIENTO DE RESPUESTA EN LENGUAJE NATURAL CON PRIORIDADES Y LÍMITE DE UN MODELO ===");
+  console.log("=== PROBANDO RESPUESTA EN LENGUAJE NATURAL - PRECIOS AISLADOS Y SEGUIMIENTO ACTIVO ===");
   
   const adminInput = "para esa Amarok v6 rodado 18 ponele la medida 255/60 R18. Tenemos Michelin Primacy a 290.000 pesos cada una, y en BF Goodrich tenemos la Trail Terrain a 310.000 y si prefiere la KO3 que es mas reforzada a 380.000 pesos. Decile que el envio es gratis como siempre";
   console.log(`\nEntrada de Karim (Admin): "${adminInput}"`);
@@ -17,41 +17,52 @@ async function runTest() {
     console.log(result.client_response);
     console.log("\n--------------------------");
 
-    // Validaciones
     const paragraphs = result.client_response.split(/\n+/).map(p => p.trim()).filter(Boolean);
     console.log(`\nCantidad de mensajes individuales detectados: ${paragraphs.length}`);
     
-    // Verificar orden e inclusión
-    const bfIndex = result.client_response.indexOf("BF");
-    const michelinIndex = result.client_response.indexOf("Michelin");
-    const ko3Index = result.client_response.indexOf("KO3");
-    const trailIndex = result.client_response.indexOf("Trail");
-
-    console.log("\n--- VALIDACIÓN DE PRIORIDADES Y LÍMITES ---");
+    console.log("\n--- VALIDACIÓN DE REGLAS DE NEGOCIO Y ESTRATEGIA ---");
     
-    if (bfIndex !== -1 && michelinIndex !== -1) {
-      if (bfIndex < michelinIndex) {
-        console.log("✅ BF Goodrich aparece ANTES que Michelin (Correcto)");
-      } else {
-        console.log("❌ BF Goodrich aparece DESPUÉS de Michelin (Incorrecto)");
+    // 1. Verificar que no contenga frases de cierre muerto
+    const deadEnds = ["cualquier cosa decime", "cualquier duda", "avisame", "disposición"];
+    let hasDeadEnd = false;
+    for (const phrase of deadEnds) {
+      if (result.client_response.toLowerCase().includes(phrase)) {
+        console.log(`❌ Se detectó frase de cierre prohibida: "${phrase}"`);
+        hasDeadEnd = true;
       }
-    } else {
-      console.log("⚠️ No se encontraron ambas marcas en la respuesta");
+    }
+    if (!hasDeadEnd) {
+      console.log("✅ Sin frases de cierre plano (Correcto)");
     }
 
-    // El modelo prioritario de BF Goodrich (KO3) debe estar y el secundario (Trail Terrain) debe ser OMITIDO
-    if (ko3Index !== -1) {
-      console.log("✅ Se incluyó la opción prioritaria KO3 (Correcto)");
-    } else {
-      console.log("❌ NO se incluyó la opción prioritaria KO3 (Incorrecto)");
+    // 2. Verificar que los precios estén 100% aislados
+    let pricesIsolated = true;
+    for (const paragraph of paragraphs) {
+      const isPriceLine = paragraph.includes("$") || paragraph.includes("pesos");
+      if (isPriceLine) {
+        const containsShipping = paragraph.toLowerCase().includes("envio") || paragraph.toLowerCase().includes("gratis");
+        const containsQuestion = paragraph.includes("?") || paragraph.toLowerCase().includes("como") || paragraph.toLowerCase().includes("zona") || paragraph.toLowerCase().includes("nombre");
+        
+        if (containsShipping || containsQuestion) {
+          console.log(`❌ El párrafo de precio no está aislado: "${paragraph}"`);
+          pricesIsolated = false;
+        }
+      }
+    }
+    if (pricesIsolated) {
+      console.log("✅ Párrafos de precios 100% aislados de envíos y preguntas (Correcto)");
     }
 
-    if (trailIndex === -1) {
-      console.log("✅ Se omitió la opción Trail Terrain inicialmente por límite de un modelo por marca (Correcto)");
+    // 3. Verificar que tenga una pregunta estratégica final
+    const finalParagraph = paragraphs[paragraphs.length - 1] || "";
+    const hasQuestion = finalParagraph.includes("?") || finalParagraph.toLowerCase().includes("cómo") || finalParagraph.toLowerCase().includes("zona") || finalParagraph.toLowerCase().includes("nombre");
+    if (hasQuestion) {
+      console.log(`✅ Párrafo final contiene pregunta de seguimiento estratégica: "${finalParagraph}" (Correcto)`);
     } else {
-      console.log("❌ Se incluyeron múltiples modelos de BF Goodrich de entrada (Incorrecto)");
+      console.log("❌ El párrafo final NO contiene una pregunta de seguimiento estratégica (Incorrecto)");
     }
 
+    // 4. Límite de mensajes
     if (paragraphs.length >= 2 && paragraphs.length <= 5) {
       console.log(`✅ La respuesta se dividió correctamente en ${paragraphs.length} mensajes (máximo 5)`);
     } else {
