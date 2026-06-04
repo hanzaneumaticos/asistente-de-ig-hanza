@@ -7,6 +7,9 @@ import * as dotenv from "dotenv";
 import { aiService } from "./services/openai";
 import { metaService } from "./services/meta";
 import { dbService, supabase } from "./services/supabase";
+import catalog from "../catalog.json";
+import { saveLearnedCompatibility, parseTireSize } from "./services/tireCompatibility";
+
 
 dotenv.config();
 
@@ -461,16 +464,98 @@ app.post("/webhook", async (req, res) => {
 // --- ADMIN API ENDPOINTS ---
 app.get("/api/conversations", async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data: conversations, error } = await supabase
       .from("conversations")
       .select("*")
       .order("last_message_at", { ascending: false });
     if (error) throw error;
-    res.json(data);
+
+    // Fetch pending consultations to merge them
+    const pendingConsultations = await dbService.getPendingConsultations();
+
+    const conversationsWithAlerts = (conversations || []).map((conv: any) => {
+      const pending = pendingConsultations.find(p => p.conversation_id === conv.id);
+      return {
+        ...conv,
+        pending_consultation: pending || null
+      };
+    });
+
+    res.json(conversationsWithAlerts);
   } catch (err: any) {
+    console.error("Error fetching conversations:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
+app.post("/api/conversations/:id/resolve-consultation", async (req, res) => {
+  const { id } = req.params;
+  const { vehicle, rim, tire_size } = req.body;
+
+  try {
+    if (!vehicle || !rim || !tire_size) {
+      return res.status(400).json({ error: "Faltan datos obligatorios (vehicle, rim, tire_size)." });
+    }
+
+    // 1. Guardar/aprender compatibilidad en DB
+    const learned = await saveLearnedCompatibility(vehicle, parseInt(rim, 10), tire_size);
+    if (!learned) {
+      return res.status(500).json({ error: "No se pudo registrar el aprendizaje de compatibilidad." });
+    }
+
+    // 2. Resolver consulta en DB
+    await dbService.resolveConsultation(id);
+
+    // 3. Reactivar bot
+    await dbService.updateConversationDetails(id, { bot_enabled: true });
+
+    // 4. Buscar neumáticos en el catálogo para esta medida
+    const parsedSize = parseTireSize(tire_size);
+    const results = (catalog as any[]).filter(item => {
+      if (parsedSize) {
+        return (
+          item.Ancho === parsedSize.width &&
+          item.Taco === parsedSize.aspect &&
+          item.Llanta === parsedSize.rim
+        );
+      }
+      return false;
+    }).slice(0, 3);
+
+    // 5. Formatear respuesta estilo Karim
+    let responseText = `Hola! Ahi averigüe y para la ${vehicle} en rodado ${rim} lleva la medida *${tire_size}*.`;
+    
+    if (results.length > 0) {
+      responseText += ` Tengo estas opciones de Michelin en stock:\n\n`;
+      results.forEach((item, index) => {
+        const price = Math.round(item["Precio con IVA"]).toLocaleString("es-AR");
+        responseText += `${index + 1}. *${item.Modelo.trim()} (${item.Ancho}/${item.Taco} R${item.Llanta})* - $${price} cada uno.\n`;
+      });
+      responseText += `\nTodos los precios incluyen envío gratis. Te interesa alguna?`;
+    } else {
+      responseText += ` Por el momento no me quedo stock de esa medida exacta en Michelin ni BF Goodrich, pero te aviso apenas me entren!`;
+    }
+
+    // 6. Guardar mensaje en el historial
+    await dbService.saveMessage(id, "assistant", responseText);
+
+    // 7. Enviar mensaje a Meta según plataforma
+    const conv = await dbService.getConversation(id);
+    if (conv) {
+      if (conv.platform === "whatsapp") {
+        await metaService.sendWhatsAppMessage(conv.contact_id, responseText);
+      } else if (conv.platform === "instagram") {
+        await metaService.sendInstagramMessage(conv.contact_id, responseText);
+      }
+    }
+
+    res.json({ success: true, responseText });
+  } catch (err: any) {
+    console.error("Error in /resolve-consultation:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 app.get("/api/conversations/:id/messages", async (req, res) => {
   try {

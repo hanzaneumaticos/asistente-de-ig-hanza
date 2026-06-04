@@ -241,6 +241,17 @@
         .tag-warm { background: rgba(245, 158, 11, 0.1); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.2); }
         .tag-cold { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.2); }
         .tag-deriv { background: rgba(37, 99, 235, 0.1); color: var(--primary); border: 1px solid rgba(37, 99, 235, 0.2); }
+        .tag-consult { 
+            background: rgba(249, 115, 22, 0.15); 
+            color: #f97316; 
+            border: 1px solid rgba(249, 115, 22, 0.4); 
+            animation: pulse-orange 1.5s infinite; 
+        }
+        @keyframes pulse-orange {
+            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(249, 115, 22, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+        }
 
         /* --- Toggle Switch --- */
         .bot-toggle-container {
@@ -654,6 +665,20 @@
                 </div>
             </div>
 
+            <!-- Banner de Consulta de Compatibilidad -->
+            <div id="consultation-banner" style="display: none; background: rgba(249, 115, 22, 0.1); border-bottom: 1px solid rgba(249, 115, 22, 0.2); padding: 15px 20px; flex-direction: column; gap: 8px;">
+                <div style="font-weight: 600; color: #f97316; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                    ⚠️ CONSULTA PENDIENTE DE COMPATIBILIDAD
+                </div>
+                <div id="consultation-query" style="font-size: 13px; color: var(--text-main);">
+                    El cliente consultó por una medida no registrada.
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+                    <input type="text" id="resolve-tire-size" placeholder="Medida compatible (ej: 255/50 R20)" style="flex: 1; background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; color: white; font-size: 13px; outline: none;">
+                    <button onclick="resolveConsultation()" style="background: #f97316; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 13px; transition: 0.2s;">Responder y Aprender</button>
+                </div>
+            </div>
+
             <div class="messages-container" id="messages-window">
                 <!-- Messages load dynamically -->
             </div>
@@ -819,7 +844,10 @@
                     tagClass = "tag-warm";
                 }
                 
-                if (!isBotOn) {
+                if (chat.pending_consultation) {
+                    scoringTag = "Consulta";
+                    tagClass = "tag-consult";
+                } else if (!isBotOn) {
                     scoringTag = "Derivado";
                     tagClass = "tag-deriv";
                 }
@@ -903,6 +931,58 @@
             } else {
                 takeoverBtn.innerText = "Tomar Control Manual";
                 takeoverBtn.classList.remove("active");
+            }
+
+            // Actualizar banner de consulta
+            const banner = document.getElementById("consultation-banner");
+            if (chat.pending_consultation) {
+                banner.style.display = "flex";
+                const v = chat.pending_consultation.vehicle || chat.vehicle_info || "Desconocido";
+                const r = chat.pending_consultation.rim || "Desconocido";
+                document.getElementById("consultation-query").innerText = `El cliente preguntó qué medida lleva una *${v}* con rodado *${r}*.`;
+            } else {
+                banner.style.display = "none";
+            }
+        }
+
+        async function resolveConsultation() {
+            const chat = conversations[activeChatIndex];
+            if (!chat || !chat.pending_consultation) return;
+
+            const tireSizeInput = document.getElementById("resolve-tire-size");
+            const tireSize = tireSizeInput.value.trim();
+
+            if (!tireSize) {
+                alert("Por favor, ingresa la medida compatible.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/conversations/${chat.id}/resolve-consultation`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        vehicle: chat.pending_consultation.vehicle || chat.vehicle_info || "Desconocido",
+                        rim: chat.pending_consultation.rim,
+                        tire_size: tireSize
+                    })
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    alert("¡Consulta resuelta y compatibilidad aprendida!");
+                    tireSizeInput.value = "";
+                    await fetchConversationsSilently();
+                    if (conversations[activeChatIndex]) {
+                        renderActiveChatDetails();
+                        await fetchActiveMessagesSilently();
+                    }
+                } else {
+                    alert("Error: " + result.error);
+                }
+            } catch (err) {
+                console.error("Error resolving consultation:", err);
+                alert("Ocurrió un error al procesar la resolución.");
             }
         }
 

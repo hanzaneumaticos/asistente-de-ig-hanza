@@ -232,6 +232,118 @@ export class SupabaseService {
       return [];
     }
   }
+
+  // --- CONSULTATIONS ---
+  async createPendingConsultation(conversationId: string, vehicle: string, rim: number | null, query: string) {
+    try {
+      const topic = `consultation:${conversationId}`;
+      const content = JSON.stringify({
+        vehicle,
+        rim,
+        query,
+        status: "pending",
+        created_at: new Date().toISOString()
+      });
+
+      const { data: existing } = await supabase
+        .from("knowledge_base")
+        .select("id")
+        .eq("topic", topic)
+        .maybeSingle();
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from("knowledge_base")
+          .update({ content, updated_at: new Date().toISOString() })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        const { data, error } = await supabase
+          .from("knowledge_base")
+          .insert({ topic, content })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    } catch (error) {
+      console.error("Error creating pending consultation:", error);
+      return null;
+    }
+  }
+
+  async getPendingConsultations() {
+    try {
+      const { data, error } = await supabase
+        .from("knowledge_base")
+        .select("*")
+        .like("topic", "consultation:%");
+
+      if (error) throw error;
+      
+      const pending: any[] = [];
+      for (const row of (data || [])) {
+        try {
+          const parsed = JSON.parse(row.content);
+          if (parsed && parsed.status === "pending") {
+            const conversationId = row.topic.split(":")[1];
+            pending.push({
+              id: row.id,
+              conversation_id: conversationId,
+              ...parsed
+            });
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
+      return pending;
+    } catch (error) {
+      console.error("Error getting pending consultations:", error);
+      return [];
+    }
+  }
+
+  async resolveConsultation(conversationId: string) {
+    try {
+      const topic = `consultation:${conversationId}`;
+      const { data: existing } = await supabase
+        .from("knowledge_base")
+        .select("*")
+        .eq("topic", topic)
+        .maybeSingle();
+
+      if (existing) {
+        try {
+          const parsed = JSON.parse(existing.content);
+          parsed.status = "resolved";
+          parsed.resolved_at = new Date().toISOString();
+
+          const { error } = await supabase
+            .from("knowledge_base")
+            .update({
+              content: JSON.stringify(parsed),
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existing.id);
+
+          if (error) throw error;
+          return true;
+        } catch (e) {
+          await supabase.from("knowledge_base").delete().eq("id", existing.id);
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      console.error("Error resolving consultation:", error);
+      return false;
+    }
+  }
 }
 
 export const dbService = new SupabaseService();
+
