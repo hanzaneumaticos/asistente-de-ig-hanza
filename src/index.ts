@@ -542,10 +542,21 @@ app.post("/api/conversations/:id/resolve-consultation", async (req, res) => {
     // 7. Enviar mensaje a Meta según plataforma
     const conv = await dbService.getConversation(id);
     if (conv) {
+      const individualResponses = splitIntoMessages(client_response || "");
       if (conv.platform === "whatsapp") {
-        await metaService.sendWhatsAppMessage(conv.contact_id, client_response);
+        for (let i = 0; i < individualResponses.length; i++) {
+          await metaService.sendWhatsAppMessage(conv.contact_id, individualResponses[i]);
+          if (i < individualResponses.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+        }
       } else if (conv.platform === "instagram") {
-        await metaService.sendInstagramMessage(conv.contact_id, client_response);
+        for (let i = 0; i < individualResponses.length; i++) {
+          await metaService.sendInstagramMessage(conv.contact_id, individualResponses[i]);
+          if (i < individualResponses.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+        }
       }
     }
 
