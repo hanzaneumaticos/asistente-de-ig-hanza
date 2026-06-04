@@ -800,10 +800,17 @@
                     <div><strong style="color: var(--text-muted);">Medidas buscadas:</strong> <span id="detail-sizes">-</span></div>
                 </div>
 
-                <div style="border-top: 1px solid var(--border); padding-top: 15px;">
-                    <strong style="font-size: 13px; color: var(--text-main);">Resumen de Conversación:</strong>
-                    <div id="detail-summary-container" style="margin-top: 8px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
-                        <span id="detail-summary">Selecciona un chat para ver el resumen...</span>
+                <div style="border-top: 1px solid var(--border); padding-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+                    <div>
+                        <strong style="font-size: 13px; color: var(--text-main);">Resumen de Conversación:</strong>
+                        <div id="detail-summary-container" style="margin-top: 6px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; min-height: 24px;">
+                            <span id="detail-summary">Sin resumen generado todavía.</span>
+                        </div>
+                    </div>
+                    <div id="summary-action-block">
+                        <button id="generate-summary-btn" onclick="generateSummaryManually()" style="background: rgba(37, 99, 235, 0.12); color: #3b82f6; border: 1px solid rgba(37, 99, 235, 0.25); padding: 8px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: 0.2s; font-family: inherit; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <span>✨ Generar Resumen con IA</span>
+                        </button>
                     </div>
                 </div>
 
@@ -992,37 +999,77 @@
 
             renderActiveChatDetails();
             
-            // Mostrar loader en el resumen mientras carga
-            document.getElementById("detail-summary").innerHTML = `<span class="spinner"></span> Generando resumen por IA...`;
+            // Mostrar texto de carga inicial
+            document.getElementById("detail-summary").innerText = "Cargando ficha...";
             document.getElementById("detail-location").innerText = "Cargando...";
 
             await fetchActiveMessagesSilently();
             
-            // Cargar resumen y ubicación
-            fetchConversationSummary(activeConversationId);
+            // Cargar resumen y ubicación (solo caché)
+            fetchConversationSummary(activeConversationId, false);
             
             // Forzar scroll al fondo en la primera carga del chat
             const container = document.getElementById("messages-window");
             container.scrollTop = container.scrollHeight;
         }
 
-        async function fetchConversationSummary(convId) {
+        async function fetchConversationSummary(convId, force = false) {
             try {
-                const res = await fetch(`/api/conversations/${convId}/summary`);
+                const res = await fetch(`/api/conversations/${convId}/summary?force=${force}`);
                 const data = await res.json();
                 
                 // Asegurarse de que el usuario no cambió de chat mientras cargaba la respuesta
                 if (activeConversationId === convId) {
-                    document.getElementById("detail-summary").innerText = data.summary || "Sin resumen disponible.";
-                    document.getElementById("detail-location").innerText = data.location || "No especificada";
+                    const btn = document.getElementById("generate-summary-btn");
+                    
+                    if (data.summary) {
+                        document.getElementById("detail-summary").innerText = data.summary;
+                        document.getElementById("detail-location").innerText = data.location || "No especificada";
+                        
+                        if (data.is_outdated) {
+                            btn.innerHTML = `<span>🔄 Actualizar Resumen (Nuevos mensajes)</span>`;
+                            btn.style.background = "rgba(245, 158, 11, 0.12)";
+                            btn.style.color = "var(--amber)";
+                            btn.style.borderColor = "rgba(245, 158, 11, 0.3)";
+                        } else {
+                            btn.innerHTML = `<span>🔄 Actualizar Resumen con IA</span>`;
+                            btn.style.background = "rgba(255, 255, 255, 0.05)";
+                            btn.style.color = "var(--text-muted)";
+                            btn.style.borderColor = "var(--border)";
+                        }
+                    } else {
+                        document.getElementById("detail-summary").innerText = "Sin resumen generado todavía.";
+                        document.getElementById("detail-location").innerText = "No especificada";
+                        
+                        btn.innerHTML = `<span>✨ Generar Resumen con IA</span>`;
+                        btn.style.background = "rgba(37, 99, 235, 0.12)";
+                        btn.style.color = "#3b82f6";
+                        btn.style.borderColor = "rgba(37, 99, 235, 0.25)";
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching summary:", err);
                 if (activeConversationId === convId) {
-                    document.getElementById("detail-summary").innerText = "Error al generar resumen.";
+                    document.getElementById("detail-summary").innerText = "Error al obtener resumen.";
                     document.getElementById("detail-location").innerText = "No especificada";
                 }
             }
+        }
+
+        async function generateSummaryManually() {
+            if (!activeConversationId) return;
+            
+            const btn = document.getElementById("generate-summary-btn");
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = `<span class="spinner"></span> Generando...`;
+            btn.disabled = true;
+
+            document.getElementById("detail-summary").innerHTML = `<span class="spinner"></span> Procesando conversación con la IA...`;
+            document.getElementById("detail-location").innerText = "Procesando...";
+
+            await fetchConversationSummary(activeConversationId, true);
+            
+            btn.disabled = false;
         }
 
         function renderActiveChatDetails() {

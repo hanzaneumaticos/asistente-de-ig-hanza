@@ -558,6 +558,8 @@ app.post("/api/conversations/:id/resolve-consultation", async (req, res) => {
 
 app.get("/api/conversations/:id/summary", async (req, res) => {
   const { id } = req.params;
+  const forceGenerate = req.query.force === "true";
+
   try {
     // 1. Obtener conteo de mensajes
     const { count, error: countError } = await supabase
@@ -577,24 +579,32 @@ app.get("/api/conversations/:id/summary", async (req, res) => {
       .eq("topic", topic)
       .maybeSingle();
 
+    let cachedData: any = null;
     if (cached && cached.content) {
       try {
-        const parsed = JSON.parse(cached.content);
-        if (parsed && parsed.last_message_count === messageCount) {
-          // Cache hit! Devolver resumen sin tocar IA
-          console.log(`Cache hit for summary of conversation ${id}`);
-          return res.json({
-            summary: parsed.summary,
-            location: parsed.location
-          });
-        }
+        cachedData = JSON.parse(cached.content);
       } catch (e) {
-        // Ignorar error de parseo y regenerar
+        // Ignorar error de parseo
       }
     }
 
-    // 3. Cache miss: Generar usando la IA
-    console.log(`Cache miss for summary of conversation ${id}. Generating summary...`);
+    // Si NO se requiere regeneración forzada
+    if (!forceGenerate) {
+      if (cachedData) {
+        // Devolver lo que haya en caché
+        return res.json({
+          summary: cachedData.summary,
+          location: cachedData.location,
+          is_outdated: cachedData.last_message_count !== messageCount
+        });
+      } else {
+        // No hay caché y no se forzó -> devolver nulos para que el botón aparezca
+        return res.json({ summary: null, location: null });
+      }
+    }
+
+    // 3. Si force===true o cache miss forzado: Generar usando la IA
+    console.log(`Generating summary for conversation ${id} (force=${forceGenerate})...`);
     const { data: messages, error: msgsError } = await supabase
       .from("messages")
       .select("role, content")
@@ -603,9 +613,8 @@ app.get("/api/conversations/:id/summary", async (req, res) => {
 
     if (msgsError) throw msgsError;
 
-    // Tomar solo los últimos 20 mensajes para optimizar tokens
-    const recentMessages = (messages || []).slice(-20);
-    const { summary, location } = await aiService.summarizeConversation(recentMessages);
+    // Usar todos los mensajes para resumir toda la charla completa
+    const { summary, location } = await aiService.summarizeConversation(messages || []);
 
     // 4. Guardar en knowledge_base para futuras llamadas
     const contentToSave = JSON.stringify({
@@ -625,7 +634,7 @@ app.get("/api/conversations/:id/summary", async (req, res) => {
         .insert({ topic, content: contentToSave });
     }
 
-    res.json({ summary, location });
+    res.json({ summary, location, is_outdated: false });
   } catch (err: any) {
     console.error("Error generating conversation summary:", err);
     res.status(500).json({ error: err.message });
