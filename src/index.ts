@@ -490,68 +490,144 @@ app.get("/api/conversations", async (req, res) => {
 
 app.post("/api/conversations/:id/resolve-consultation", async (req, res) => {
   const { id } = req.params;
-  const { vehicle, rim, tire_size } = req.body;
+  const { admin_response } = req.body;
 
   try {
-    if (!vehicle || !rim || !tire_size) {
-      return res.status(400).json({ error: "Faltan datos obligatorios (vehicle, rim, tire_size)." });
+    if (!admin_response) {
+      return res.status(400).json({ error: "Falta la respuesta en lenguaje natural (admin_response)." });
     }
 
-    // 1. Guardar/aprender compatibilidad en DB
-    const learned = await saveLearnedCompatibility(vehicle, parseInt(rim, 10), tire_size);
-    if (!learned) {
-      return res.status(500).json({ error: "No se pudo registrar el aprendizaje de compatibilidad." });
+    // 1. Obtener la consulta pendiente de la base de datos para obtener el contexto de vehículo y rodado
+    const pendingConsultations = await dbService.getPendingConsultations();
+    const activeConsultation = pendingConsultations.find(c => c.conversation_id === id);
+    
+    if (!activeConsultation) {
+      return res.status(404).json({ error: "No se encontró ninguna consulta pendiente para esta conversación." });
     }
 
-    // 2. Resolver consulta en DB
+    const { vehicle, rim } = activeConsultation;
+
+    // 2. Procesar con la IA para extraer la medida de cubierta y redactar el mensaje en el estilo de Karim
+    console.log(`Processing admin natural response for vehicle: ${vehicle}, rim: ${rim}...`);
+    const { extracted_tire_size, client_response } = await aiService.processAdminResponse(
+      admin_response,
+      vehicle || "Desconocido",
+      rim ? String(rim) : "Desconocido"
+    );
+
+    // 3. Si se extrajo una medida de cubierta válida, guardarla/aprenderla en el sistema
+    if (extracted_tire_size) {
+      console.log(`Extracted learned tire size: ${extracted_tire_size}. Saving compatibility rule...`);
+      const parsedSize = parseTireSize(extracted_tire_size);
+      if (parsedSize && vehicle) {
+        await saveLearnedCompatibility(vehicle, parsedSize.rim, extracted_tire_size);
+        
+        // También guardar en los detalles de la conversación la medida y vehículo
+        await dbService.appendConversationDetails(id, {
+          vehicle_info: vehicle,
+          tire_size_searched: extracted_tire_size
+        });
+      }
+    }
+
+    // 4. Resolver consulta en DB
     await dbService.resolveConsultation(id);
 
-    // 3. Reactivar bot
+    // 5. Reactivar bot
     await dbService.updateConversationDetails(id, { bot_enabled: true });
 
-    // 4. Buscar neumáticos en el catálogo para esta medida
-    const parsedSize = parseTireSize(tire_size);
-    const results = (catalog as any[]).filter(item => {
-      if (parsedSize) {
-        return (
-          item.Ancho === parsedSize.width &&
-          item.Taco === parsedSize.aspect &&
-          item.Llanta === parsedSize.rim
-        );
-      }
-      return false;
-    }).slice(0, 3);
-
-    // 5. Formatear respuesta estilo Karim
-    let responseText = `Hola! Ahi averigüe y para la ${vehicle} en rodado ${rim} lleva la medida *${tire_size}*.`;
-    
-    if (results.length > 0) {
-      responseText += ` Tengo estas opciones de Michelin en stock:\n\n`;
-      results.forEach((item, index) => {
-        const price = Math.round(item["Precio con IVA"]).toLocaleString("es-AR");
-        responseText += `${index + 1}. *${item.Modelo.trim()} (${item.Ancho}/${item.Taco} R${item.Llanta})* - $${price} cada uno.\n`;
-      });
-      responseText += `\nTodos los precios incluyen envío gratis. Te interesa alguna?`;
-    } else {
-      responseText += ` Por el momento no me quedo stock de esa medida exacta en Michelin ni BF Goodrich, pero te aviso apenas me entren!`;
-    }
-
     // 6. Guardar mensaje en el historial
-    await dbService.saveMessage(id, "assistant", responseText);
+    await dbService.saveMessage(id, "assistant", client_response);
 
     // 7. Enviar mensaje a Meta según plataforma
     const conv = await dbService.getConversation(id);
     if (conv) {
       if (conv.platform === "whatsapp") {
-        await metaService.sendWhatsAppMessage(conv.contact_id, responseText);
+        await metaService.sendWhatsAppMessage(conv.contact_id, client_response);
       } else if (conv.platform === "instagram") {
-        await metaService.sendInstagramMessage(conv.contact_id, responseText);
+        await metaService.sendInstagramMessage(conv.contact_id, client_response);
       }
     }
 
-    res.json({ success: true, responseText });
+    res.json({ success: true, responseText: client_response, extracted_tire_size });
   } catch (err: any) {
     console.error("Error in /resolve-consultation:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/conversations/:id/summary", async (req, res) => {
+  const { id } = req.params;
+  try {
+    // 1. Obtener conteo de mensajes
+    const { count, error: countError } = await supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .eq("conversation_id", id);
+      
+    if (countError) throw countError;
+    
+    const messageCount = count || 0;
+    const topic = `summary:${id}`;
+
+    // 2. Intentar obtener el resumen de knowledge_base
+    const { data: cached, error: cacheError } = await supabase
+      .from("knowledge_base")
+      .select("*")
+      .eq("topic", topic)
+      .maybeSingle();
+
+    if (cached && cached.content) {
+      try {
+        const parsed = JSON.parse(cached.content);
+        if (parsed && parsed.last_message_count === messageCount) {
+          // Cache hit! Devolver resumen sin tocar IA
+          console.log(`Cache hit for summary of conversation ${id}`);
+          return res.json({
+            summary: parsed.summary,
+            location: parsed.location
+          });
+        }
+      } catch (e) {
+        // Ignorar error de parseo y regenerar
+      }
+    }
+
+    // 3. Cache miss: Generar usando la IA
+    console.log(`Cache miss for summary of conversation ${id}. Generating summary...`);
+    const { data: messages, error: msgsError } = await supabase
+      .from("messages")
+      .select("role, content")
+      .eq("conversation_id", id)
+      .order("created_at", { ascending: true });
+
+    if (msgsError) throw msgsError;
+
+    // Tomar solo los últimos 20 mensajes para optimizar tokens
+    const recentMessages = (messages || []).slice(-20);
+    const { summary, location } = await aiService.summarizeConversation(recentMessages);
+
+    // 4. Guardar en knowledge_base para futuras llamadas
+    const contentToSave = JSON.stringify({
+      summary,
+      location,
+      last_message_count: messageCount
+    });
+
+    if (cached) {
+      await supabase
+        .from("knowledge_base")
+        .update({ content: contentToSave, updated_at: new Date().toISOString() })
+        .eq("id", cached.id);
+    } else {
+      await supabase
+        .from("knowledge_base")
+        .insert({ topic, content: contentToSave });
+    }
+
+    res.json({ summary, location });
+  } catch (err: any) {
+    console.error("Error generating conversation summary:", err);
     res.status(500).json({ error: err.message });
   }
 });

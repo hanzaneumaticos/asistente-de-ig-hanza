@@ -563,6 +563,56 @@
             font-size: 11px;
             color: var(--text-muted);
         }
+
+        /* --- Accordion Styles --- */
+        .accordion-item {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .accordion-header {
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-size: 13.5px;
+            font-weight: 600;
+            transition: background 0.2s;
+            user-select: none;
+            background: rgba(19, 25, 38, 0.2);
+        }
+
+        .accordion-header:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .accordion-arrow {
+            font-size: 10px;
+            color: var(--text-muted);
+            transition: transform 0.3s;
+        }
+
+        .accordion-content {
+            padding: 0 25px 20px 25px;
+            background: #0d121f;
+        }
+        
+        /* Spinner Loader for AI summary */
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -662,22 +712,9 @@
                 </div>
                 <div class="chat-actions">
                     <button class="action-btn takeover" id="takeover-btn" onclick="manualTakeover()">Tomar Control Manual</button>
-                </div>
             </div>
-
-            <!-- Banner de Consulta de Compatibilidad -->
-            <div id="consultation-banner" style="display: none; background: rgba(249, 115, 22, 0.1); border-bottom: 1px solid rgba(249, 115, 22, 0.2); padding: 15px 20px; flex-direction: column; gap: 8px;">
-                <div style="font-weight: 600; color: #f97316; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                    ⚠️ CONSULTA PENDIENTE DE COMPATIBILIDAD
-                </div>
-                <div id="consultation-query" style="font-size: 13px; color: var(--text-main);">
-                    El cliente consultó por una medida no registrada.
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
-                    <input type="text" id="resolve-tire-size" placeholder="Medida compatible (ej: 255/50 R20)" style="flex: 1; background: var(--bg-main); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; color: white; font-size: 13px; outline: none;">
-                    <button onclick="resolveConsultation()" style="background: #f97316; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 13px; transition: 0.2s;">Responder y Aprender</button>
-                </div>
-            </div>
+            <!-- Banner de Consulta de Compatibilidad (Eliminado de aquí) -->
+            <div id="consultation-banner" style="display: none;"></div>
 
             <div class="messages-container" id="messages-window">
                 <!-- Messages load dynamically -->
@@ -689,56 +726,98 @@
             </div>
         </div>
 
-        <!-- --- Panel 3: Control Panel & Knowledge Base --- -->
+        <!-- --- Panel 3: Control Panel & Details --- -->
         <div class="control-panel">
             
-            <!-- Excel Manager -->
-            <div class="section-box">
-                <div class="section-title">
+            <!-- Collapsible Excel Manager -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion('excel-manager')">
                     <span>📊 Carga de Catálogo y Stock (Excel)</span>
+                    <span class="accordion-arrow" id="arrow-excel-manager">▼</span>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <div class="upload-zone" onclick="simulateUpload('Propio')">
-                        <div class="upload-icon">📂</div>
-                        <div class="upload-text">Subir Stock Propio</div>
-                        <div class="upload-subtext">Soporta formatos .xlsx y .xls</div>
-                    </div>
-                    <div class="upload-zone" onclick="simulateUpload('Fabrica')">
-                        <div class="upload-icon">🏭</div>
-                        <div class="upload-text">Subir Stock Fábrica</div>
-                        <div class="upload-subtext">Michelin / BF Goodrich (demora 2-3 días)</div>
+                <div class="accordion-content" id="excel-manager" style="display: none;">
+                    <div style="display: flex; flex-direction: column; gap: 12px; padding: 15px 0 0 0;">
+                        <div class="upload-zone" onclick="simulateUpload('Propio')">
+                            <div class="upload-icon">📂</div>
+                            <div class="upload-text">Subir Stock Propio</div>
+                            <div class="upload-subtext">Soporta formatos .xlsx y .xls</div>
+                        </div>
+                        <div class="upload-zone" onclick="simulateUpload('Fabrica')">
+                            <div class="upload-icon">🏭</div>
+                            <div class="upload-text">Subir Stock Fábrica</div>
+                            <div class="upload-subtext">Michelin / BF Goodrich (demora 2-3 días)</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Manual Rules (Knowledge Base) -->
-            <div class="section-box" style="border-bottom: none;">
-                <div class="section-title">
+            <!-- Collapsible Manual Rules -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion('manual-rules')">
                     <span>💡 Instrucciones Manuales para la IA</span>
+                    <span class="accordion-arrow" id="arrow-manual-rules">▼</span>
                 </div>
-                <textarea class="rules-area" id="new-rule-text" placeholder="Escribe una instrucción para Hancita. Ejemplo:
+                <div class="accordion-content" id="manual-rules" style="display: none;">
+                    <div style="padding: 15px 0 0 0;">
+                        <textarea class="rules-area" id="new-rule-text" placeholder="Escribe una instrucción para Hancita. Ejemplo:
 - Para camionetas SW4 sugerir 265/65 R17 o 265/70 R17.
 - Los envíos son gratis a todo el país.
-- No vender otras marcas que no sean Michelin o BF Goodrich."></textarea>
-                <button class="save-btn" onclick="addRule()">Guardar y Entrenar IA</button>
+- No vender otras marcas que no sean Michelin o BF Goodrich." style="margin-bottom: 10px; height: 100px;"></textarea>
+                        <button class="save-btn" onclick="addRule()">Guardar y Entrenar IA</button>
 
-                <div class="rules-list" id="rules-container">
-                    <!-- Rule 1 -->
-                    <div class="rule-item">
-                        <span>• Envíos gratis a toda la Argentina (Logística propia o Vía Cargo)</span>
-                        <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
-                    </div>
-                    <!-- Rule 2 -->
-                    <div class="rule-item">
-                        <span>• Demora de 2-3 días si el producto solo está en fábrica</span>
-                        <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
-                    </div>
-                    <!-- Rule 3 -->
-                    <div class="rule-item">
-                        <span>• Evitar lunfardos y mantener voseo educado y cordial</span>
-                        <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                        <div class="rules-list" id="rules-container">
+                            <!-- Rule 1 -->
+                            <div class="rule-item">
+                                <span>• Envíos gratis a toda la Argentina (Logística propia o Vía Cargo)</span>
+                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                            </div>
+                            <!-- Rule 2 -->
+                            <div class="rule-item">
+                                <span>• Demora de 2-3 días si el producto solo está en fábrica</span>
+                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                            </div>
+                            <!-- Rule 3 -->
+                            <div class="rule-item">
+                                <span>• Evitar lunfardos y mantener voseo educado y cordial</span>
+                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Active Chat Details and Summary -->
+            <div class="section-box" style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                <div class="section-title" style="margin-bottom: 5px;">
+                    <span>👤 Ficha de Detalles del Cliente</span>
+                </div>
+                
+                <div class="client-details-grid" style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                    <div><strong style="color: var(--text-muted);">Nombre completo:</strong> <span id="detail-name">-</span></div>
+                    <div><strong style="color: var(--text-muted);">Ubicación / Zona:</strong> <span id="detail-location">-</span></div>
+                    <div><strong style="color: var(--text-muted);">Vehículos:</strong> <span id="detail-vehicles">-</span></div>
+                    <div><strong style="color: var(--text-muted);">Medidas buscadas:</strong> <span id="detail-sizes">-</span></div>
+                </div>
+
+                <div style="border-top: 1px solid var(--border); padding-top: 15px;">
+                    <strong style="font-size: 13px; color: var(--text-main);">Resumen de Conversación:</strong>
+                    <div id="detail-summary-container" style="margin-top: 8px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+                        <span id="detail-summary">Selecciona un chat para ver el resumen...</span>
+                    </div>
+                </div>
+
+                <!-- Consultation Block inside the details panel -->
+                <div id="sidebar-consultation-box" style="display: none; background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 12px; padding: 15px; margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="font-weight: 600; color: #f97316; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                        ⚠️ CONSULTA PENDIENTE DE COMPATIBILIDAD
+                    </div>
+                    <div id="sidebar-consultation-query" style="font-size: 12.5px; color: var(--text-main); line-height: 1.4;">
+                        Cargando consulta...
+                    </div>
+                    <textarea id="resolve-natural-response" placeholder="Escribe la respuesta en lenguaje natural para el cliente... (ej: 'decile que lleva 255/60 r18 y tenemos michelin a 280 mil pesos')" style="width: 100%; height: 80px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: white; font-family: inherit; font-size: 12.5px; outline: none; resize: none;"></textarea>
+                    <button onclick="resolveConsultation()" style="background: #f97316; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12.5px; transition: 0.2s; font-family: inherit;">Responder y Enseñar a la IA</button>
+                </div>
+            </div></div>
             </div>
 
         </div>
@@ -892,6 +971,15 @@
             return last.toLocaleDateString();
         }
 
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const arrow = document.getElementById(`arrow-${id}`);
+            const isHidden = content.style.display === "none";
+            
+            content.style.display = isHidden ? "block" : "none";
+            arrow.style.transform = isHidden ? "rotate(180deg)" : "rotate(0deg)";
+        }
+
         async function selectChat(index) {
             if (index < 0 || index >= conversations.length) return;
             activeChatIndex = index;
@@ -905,11 +993,38 @@
             });
 
             renderActiveChatDetails();
+            
+            // Mostrar loader en el resumen mientras carga
+            document.getElementById("detail-summary").innerHTML = `<span class="spinner"></span> Generando resumen por IA...`;
+            document.getElementById("detail-location").innerText = "Cargando...";
+
             await fetchActiveMessagesSilently();
+            
+            // Cargar resumen y ubicación
+            fetchConversationSummary(activeConversationId);
             
             // Forzar scroll al fondo en la primera carga del chat
             const container = document.getElementById("messages-window");
             container.scrollTop = container.scrollHeight;
+        }
+
+        async function fetchConversationSummary(convId) {
+            try {
+                const res = await fetch(`/api/conversations/${convId}/summary`);
+                const data = await res.json();
+                
+                // Asegurarse de que el usuario no cambió de chat mientras cargaba la respuesta
+                if (activeConversationId === convId) {
+                    document.getElementById("detail-summary").innerText = data.summary || "Sin resumen disponible.";
+                    document.getElementById("detail-location").innerText = data.location || "No especificada";
+                }
+            } catch (err) {
+                console.error("Error fetching summary:", err);
+                if (activeConversationId === convId) {
+                    document.getElementById("detail-summary").innerText = "Error al generar resumen.";
+                    document.getElementById("detail-location").innerText = "No especificada";
+                }
+            }
         }
 
         function renderActiveChatDetails() {
@@ -924,6 +1039,11 @@
             
             document.getElementById("current-chat-details").innerText = details;
 
+            // Rellenar ficha del cliente
+            document.getElementById("detail-name").innerText = chat.contact_name || chat.contact_id;
+            document.getElementById("detail-vehicles").innerText = chat.vehicle_info || "Ninguno";
+            document.getElementById("detail-sizes").innerText = chat.tire_size_searched || "Ninguna";
+
             const takeoverBtn = document.getElementById("takeover-btn");
             if (!chat.bot_enabled) {
                 takeoverBtn.innerText = "Control Manual Activo (IA Apagada)";
@@ -933,15 +1053,15 @@
                 takeoverBtn.classList.remove("active");
             }
 
-            // Actualizar banner de consulta
-            const banner = document.getElementById("consultation-banner");
+            // Actualizar caja lateral de consulta
+            const sidebarConsultation = document.getElementById("sidebar-consultation-box");
             if (chat.pending_consultation) {
-                banner.style.display = "flex";
+                sidebarConsultation.style.display = "flex";
                 const v = chat.pending_consultation.vehicle || chat.vehicle_info || "Desconocido";
                 const r = chat.pending_consultation.rim || "Desconocido";
-                document.getElementById("consultation-query").innerText = `El cliente preguntó qué medida lleva una *${v}* con rodado *${r}*.`;
+                document.getElementById("sidebar-consultation-query").innerHTML = `El cliente preguntó qué medida lleva una <strong>${v}</strong> con rodado <strong>${r}</strong>.`;
             } else {
-                banner.style.display = "none";
+                sidebarConsultation.style.display = "none";
             }
         }
 
@@ -949,29 +1069,33 @@
             const chat = conversations[activeChatIndex];
             if (!chat || !chat.pending_consultation) return;
 
-            const tireSizeInput = document.getElementById("resolve-tire-size");
-            const tireSize = tireSizeInput.value.trim();
+            const responseInput = document.getElementById("resolve-natural-response");
+            const adminResponse = responseInput.value.trim();
 
-            if (!tireSize) {
-                alert("Por favor, ingresa la medida compatible.");
+            if (!adminResponse) {
+                alert("Por favor, escribe la respuesta en lenguaje natural para la IA.");
                 return;
             }
+
+            // Cambiar texto de botón para indicar que está procesando
+            const btn = document.querySelector("#sidebar-consultation-box button");
+            const originalText = btn.innerText;
+            btn.innerText = "Procesando con la IA...";
+            btn.disabled = true;
 
             try {
                 const res = await fetch(`/api/conversations/${chat.id}/resolve-consultation`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        vehicle: chat.pending_consultation.vehicle || chat.vehicle_info || "Desconocido",
-                        rim: chat.pending_consultation.rim,
-                        tire_size: tireSize
+                        admin_response: adminResponse
                     })
                 });
 
                 const result = await res.json();
                 if (result.success) {
-                    alert("¡Consulta resuelta y compatibilidad aprendida!");
-                    tireSizeInput.value = "";
+                    alert("¡Consulta resuelta, compatibilidad aprendida y mensaje enviado!");
+                    responseInput.value = "";
                     await fetchConversationsSilently();
                     if (conversations[activeChatIndex]) {
                         renderActiveChatDetails();
@@ -983,6 +1107,9 @@
             } catch (err) {
                 console.error("Error resolving consultation:", err);
                 alert("Ocurrió un error al procesar la resolución.");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
         }
 

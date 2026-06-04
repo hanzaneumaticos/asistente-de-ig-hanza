@@ -373,6 +373,99 @@ export class OpenAIService {
     }
   }
 
+  async summarizeConversation(history: { role: string; content: string }[]): Promise<{ summary: string; location: string }> {
+    try {
+      if (history.length === 0) {
+        return { summary: "Sin mensajes aún.", location: "No especificada" };
+      }
+      
+      const formattedHistory = history.map(h => `${h.role === 'user' ? 'Cliente' : 'Hancita'}: ${h.content}`).join("\n");
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `Analiza la conversación de WhatsApp/Instagram adjunta entre un cliente de "Hanza Neumáticos" y Hancita.
+Debes extraer:
+1. Un resumen súper breve (máximo 1 o 2 líneas) de lo que busca el cliente y en qué estado está (ej: "Busca cubiertas para Hilux rodado 17, consultó precio de Michelin y está decidiendo").
+2. La ubicación/zona del cliente si la mencionó en sus mensajes (ej: "Lomas de Zamora", "Avellaneda"). Si no la mencionó, pon "No especificada".
+
+Responde ÚNICAMENTE con un objeto JSON en este formato:
+{
+  "summary": "resumen aquí",
+  "location": "ubicación aquí"
+}`
+          },
+          {
+            role: "user",
+            content: formattedHistory
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+      
+      const content = response.choices[0].message.content || "{}";
+      const parsed = JSON.parse(content);
+      return {
+        summary: parsed.summary || "No se pudo generar el resumen.",
+        location: parsed.location || "No especificada"
+      };
+    } catch (error) {
+      console.error("Error in summarizeConversation:", error);
+      return { summary: "Error al generar resumen.", location: "No especificada" };
+    }
+  }
+
+  async processAdminResponse(adminResponse: string, vehicle: string, rim: string): Promise<{ extracted_tire_size: string | null; client_response: string }> {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `Eres el asistente administrativo de "Hanza Neumáticos". Karim (el dueño/administrador) te da una indicación en lenguaje natural para responder una consulta sobre un vehículo.
+El vehículo consultado es: "${vehicle}"
+El rodado/llanta consultado es: "${rim}"
+
+Tus tareas:
+1. Extraer del texto de Karim la medida exacta de cubierta compatible si la menciona (ej: "255/50 R20", "225 45 17"). Debe tener formato estándar "ANCHO/PERFIL RLLANTA" (ej: "255/50 R20"). Si Karim no indica una medida exacta de cubierta, devuelve null en ese campo.
+2. Redactar el mensaje para el cliente en el tono exacto de Karim:
+   - Sé directo, relajado y amigable (como un vendedor de gomería en Lomas de Zamora).
+   - Usa el voseo argentino ("tenes", "sos", "fijate", "avisame").
+   - NUNCA uses los signos de interrogación o exclamación de apertura (¿ o ¡).
+   - Incorpora la información que Karim te dio (como stock, precios, marcas si las menciona).
+   - OBLIGATORIO: Pídele al cliente que verifique en el lateral de su rueda actual para estar seguros de la medida y no errarle (ej: "igual por las dudas mirá el costado de tu cubierta para confirmar").
+
+Responde ÚNICAMENTE con un objeto JSON en este formato:
+{
+  "extracted_tire_size": "ANCHO/PERFIL RLLANTA" o null,
+  "client_response": "texto redactado para enviar al cliente"
+}`
+          },
+          {
+            role: "user",
+            content: adminResponse
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      const content = response.choices[0].message.content || "{}";
+      const parsed = JSON.parse(content);
+      return {
+        extracted_tire_size: parsed.extracted_tire_size || null,
+        client_response: parsed.client_response || "Hola! Ahi te averiguo bien."
+      };
+    } catch (error) {
+      console.error("Error in processAdminResponse:", error);
+      return {
+        extracted_tire_size: null,
+        client_response: "Dejame que consulte bien y te confirmo en un ratito."
+      };
+    }
+  }
+
   async transcribeAudio(audioBuffer: Buffer, mimeType: string = "audio/ogg"): Promise<string> {
     try {
       const extension = mimeType.includes("mp3") ? "mp3" : mimeType.includes("m4a") ? "m4a" : "ogg";
