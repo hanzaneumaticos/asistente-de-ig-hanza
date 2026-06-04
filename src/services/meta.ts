@@ -26,7 +26,7 @@ export class MetaService {
           messaging_product: "whatsapp",
           to: formattedTo,
           type: "text",
-          text: { body: message },
+          text: { body: message.replace(/[¿¡]/g, "") },
         },
         {
           headers: { Authorization: `Bearer ${META_ACCESS_TOKEN}` },
@@ -44,7 +44,7 @@ export class MetaService {
         url,
         {
           recipient: { id: recipientId },
-          message: { text: message },
+          message: { text: message.replace(/[¿¡]/g, "") },
         },
         {
           headers: { Authorization: `Bearer ${META_ACCESS_TOKEN}` },
