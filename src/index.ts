@@ -1,4 +1,5 @@
 import express from "express";
+import axios from "axios";
 import bodyParser from "body-parser";
 import cors from "cors";
 import path from "path";
@@ -531,6 +532,40 @@ app.post("/api/conversations/:id/send-manual", async (req, res) => {
   } catch (err: any) {
     console.error("Error sending manual message:", err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/test-send", async (req, res) => {
+  const to = (req.query.to as string) || "5491166061827";
+  const body = (req.query.body as string) || "Mensaje de prueba de conectividad directo desde el servidor de Render.";
+  
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() || "";
+  const token = process.env.META_ACCESS_TOKEN?.trim() || "";
+  const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
+
+  let formattedTo = to.trim();
+  if (formattedTo.startsWith("549") && formattedTo.length === 13) {
+    formattedTo = "54" + formattedTo.substring(3);
+  }
+
+  try {
+    const response = await axios.post(
+      url,
+      {
+        messaging_product: "whatsapp",
+        to: formattedTo,
+        type: "text",
+        text: { body: body },
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    res.json({ success: true, formattedTo, response: response.data });
+  } catch (error: any) {
+    const errorDetails = error.response?.data || error.message;
+    console.error("Test send error details:", errorDetails);
+    res.status(500).json({ success: false, formattedTo, error: errorDetails });
   }
 });
 
