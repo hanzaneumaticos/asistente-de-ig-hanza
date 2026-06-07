@@ -517,25 +517,34 @@ app.post("/api/conversations/:id/resolve-consultation", async (req, res) => {
 
     // 2. Procesar con la IA para extraer la medida de cubierta y redactar el mensaje en el estilo de Karim
     console.log(`Processing admin natural response for vehicle: ${vehicle}, rim: ${rim}...`);
-    const { extracted_tire_size, client_response } = await aiService.processAdminResponse(
+    const { extracted_tire_sizes, extracted_tire_size, client_response } = await aiService.processAdminResponse(
       admin_response,
       vehicle || "Desconocido",
       rim ? String(rim) : "Desconocido"
     );
 
-    // 3. Si se extrajo una medida de cubierta válida, guardarla/aprenderla en el sistema
-    if (extracted_tire_size) {
-      console.log(`Extracted learned tire size: ${extracted_tire_size}. Saving compatibility rule...`);
-      const parsedSize = parseTireSize(extracted_tire_size);
-      if (parsedSize && vehicle) {
-        await saveLearnedCompatibility(vehicle, parsedSize.rim, extracted_tire_size);
-        
-        // También guardar en los detalles de la conversación la medida y vehículo
-        await dbService.appendConversationDetails(id, {
-          vehicle_info: vehicle,
-          tire_size_searched: extracted_tire_size
-        });
+    // 3. Si se extrajeron medidas de cubierta válidas, guardarlas/aprenderlas en el sistema
+    const extractedSizes: string[] = [];
+    if (extracted_tire_sizes && Array.isArray(extracted_tire_sizes)) {
+      extractedSizes.push(...extracted_tire_sizes);
+    } else if (extracted_tire_size) {
+      extractedSizes.push(extracted_tire_size);
+    }
+
+    if (extractedSizes.length > 0) {
+      for (const size of extractedSizes) {
+        console.log(`Extracted learned tire size: ${size}. Saving compatibility rule...`);
+        const parsedSize = parseTireSize(size);
+        if (parsedSize && vehicle) {
+          await saveLearnedCompatibility(vehicle, parsedSize.rim, size);
+        }
       }
+      
+      // También guardar en los detalles de la conversación la medida y vehículo
+      await dbService.appendConversationDetails(id, {
+        vehicle_info: vehicle,
+        tire_size_searched: extractedSizes.join(", ")
+      });
     }
 
     // 4. Resolver consulta en DB

@@ -206,19 +206,23 @@ export class OpenAIService {
             let escalationFlag = false;
             let incompatibilityFlag = false;
             let compatibleSizesList: string[] = [];
+            let exactCompatSizes: string[] = [];
 
             if (detectedVeh) {
               const allCompatSizes = await getCompatibleSizes(detectedVeh);
 
               if (detectedR) {
-                const exactCompatSizes = await getCompatibleSizes(detectedVeh, detectedR);
+                exactCompatSizes = await getCompatibleSizes(detectedVeh, detectedR);
                 compatibleSizesList = exactCompatSizes;
 
                 if (exactCompatSizes.length > 0) {
                   // Filtrar catálogo estrictamente por las medidas compatibles con ese rodado
                   results = (catalog as any[]).filter(item => {
                     const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
-                    return exactCompatSizes.includes(sizeStr);
+                    return exactCompatSizes.some(compat => {
+                      const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+                      return cleanCompat === sizeStr;
+                    });
                   });
                 } else {
                   // No conocemos medidas compatibles con ese rodado para el vehículo -> Escalar!
@@ -228,7 +232,7 @@ export class OpenAIService {
                       conversationId,
                       detectedVeh,
                       detectedR,
-                      `El cliente preguntó por medidas compatibles para una ${detectedVeh} con rodado ${detectedR}.`
+                      userMessage
                     );
                     // Silenciar bot y forzar que guarde el vehículo nuevo detectado en la DB para el panel
                     await dbService.updateConversationDetails(conversationId, { 
@@ -243,7 +247,13 @@ export class OpenAIService {
                 const parsedSize = parseTireSize(query) || parseTireSize(userMessage);
                 if (parsedSize) {
                   const sizeStr = `${parsedSize.width}/${parsedSize.aspect} R${parsedSize.rim}`.toUpperCase();
-                  if (allCompatSizes.includes(sizeStr)) {
+                  const compatMatch = allCompatSizes.find(compat => {
+                    const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+                    return cleanCompat === sizeStr;
+                  });
+
+                  if (compatMatch) {
+                    exactCompatSizes = [compatMatch];
                     results = (catalog as any[]).filter(item => 
                       item.Ancho === parsedSize.width &&
                       item.Taco === parsedSize.aspect &&
@@ -256,9 +266,13 @@ export class OpenAIService {
                   }
                 } else {
                   // Sin medida ni rodado. Traer las medidas estándar típicas registradas
+                  exactCompatSizes = allCompatSizes;
                   results = (catalog as any[]).filter(item => {
                     const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
-                    return allCompatSizes.includes(sizeStr);
+                    return allCompatSizes.some(compat => {
+                      const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+                      return cleanCompat === sizeStr;
+                    });
                   });
                 }
               }
@@ -301,18 +315,27 @@ export class OpenAIService {
             } else if (incompatibilityFlag) {
               toolResponse = JSON.stringify({ incompatible: true, compatible_sizes: compatibleSizesList });
             } else {
-              const compacted = results.map(item => ({
-                cai: item.CAI,
-                marca: item.Marca,
-                modelo: item.Modelo.trim(),
-                medida: `${item.Ancho}/${item.Taco} R${item.Llanta}`,
-                precio_contado: Math.round(item.PrecioSF),
-                precio_factura: Math.round(item.PrecioCF),
-                precio_tarjeta_un_pago: Math.round(item.PrecioUnPagoCF),
-                precio_tarjeta_lista: Math.round(item.PrecioLista),
-                stock_banfield: item.StockBanfield,
-                stock_michelin: item.StockMichelin
-              }));
+              const compacted = results.map(item => {
+                const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
+                const compatInfo = exactCompatSizes.find(compat => {
+                  const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+                  return cleanCompat === sizeStr;
+                });
+
+                return {
+                  cai: item.CAI,
+                  marca: item.Marca,
+                  modelo: item.Modelo.trim(),
+                  medida: sizeStr,
+                  compatibilidad: compatInfo || "General",
+                  precio_contado: Math.round(item.PrecioSF),
+                  precio_factura: Math.round(item.PrecioCF),
+                  precio_tarjeta_un_pago: Math.round(item.PrecioUnPagoCF),
+                  precio_tarjeta_lista: Math.round(item.PrecioLista),
+                  stock_banfield: item.StockBanfield,
+                  stock_michelin: item.StockMichelin
+                };
+              });
               toolResponse = JSON.stringify(compacted);
             }
 
@@ -442,7 +465,7 @@ Responde ÚNICAMENTE con un objeto JSON en este formato:
     }
   }
 
-  async processAdminResponse(adminResponse: string, vehicle: string, rim: string): Promise<{ extracted_tire_size: string | null; client_response: string }> {
+  async processAdminResponse(adminResponse: string, vehicle: string, rim: string): Promise<{ extracted_tire_sizes?: string[]; extracted_tire_size?: string | null; client_response: string }> {
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -454,7 +477,10 @@ El vehículo consultado es: "${vehicle}"
 El rodado/llanta consultado es: "${rim}"
 
 Tus tareas:
-1. Extraer del texto de Karim la medida exacta de cubierta compatible si la menciona (ej: "255/50 R20", "225 45 17"). Debe tener formato estándar "ANCHO/PERFIL RLLANTA" (ej: "255/50 R20"). Si Karim no indica una medida exacta de cubierta, devuelve null en ese campo.
+1. Extraer del texto de Karim todas las medidas de cubierta compatibles si las menciona. Deben tener formato estándar "ANCHO/PERFIL RLLANTA" (ej: "255/50 R20").
+   - Si Karim especifica que son para una posición particular (adelante o atrás/trasera), añádelo como etiqueta al final de la medida en el formato: "MEDIDA (Adelante)" o "MEDIDA (Atrás)" (ej: "245/45 R19 (Adelante)", "275/40 R19 (Atrás)").
+   - Si Karim menciona múltiples medidas sin especificar posición, devuélvelas tal cual.
+   - Si no menciona ninguna medida, devuelve un array vacío en "extracted_tire_sizes".
 2. Redactar el mensaje para el cliente en el tono exacto de Karim:
    - Sé directo, relajado y amigable (como un vendedor de gomería en Lomas de Zamora).
    - Usa el voseo argentino ("tenes", "sos", "fijate", "avisame").
@@ -472,8 +498,8 @@ Tus tareas:
         - Contado / Efectivo (DEFAULT): Siempre pasa por defecto el precio de contado efectivo (que corresponde al precio sin factura "S/F").
         - Facturación: No menciones que no se hace factura a menos que pregunten. Si piden factura o Factura A/B, dales el precio con factura "C/F" (que incluye IVA).
         - Tarjeta: Si piden en 1 pago, da el precio de tarjeta en un pago. Si piden cuotas, indícales que pueden pagar en hasta 6 cuotas con tarjeta usando el precio de lista.
-      - MENSAJES DE PRECIOS TOTALMENTE AISLADOS (CRÍTICO): Cada opción de precio de cubierta debe ir en un párrafo estrictamente independiente y no debe contener ningún otro tipo de texto (como detalles de envío, cierres o preguntas). El párrafo que contiene el precio debe contener ÚNICAMENTE la marca, modelo, medida y precio de la cubierta.
-      - SEPARACIÓN DE MENSAJES: Debes estructurar tu respuesta en párrafos independientes separados estrictamente por dos saltos de línea (\\n\\n) para que el sistema los envíe como burbujas de chat individuales. Si es necesario podés enviar 3, 4 o hasta un máximo absoluto de 5 mensajes en total (NUNCA superes el límite de 5 burbujas de mensajes):
+      - MENSAJES DE PRECIOS TOTALMENTE AISLADOS (CRÍTICO): Cada opción de precio de cubierta debe ir en un párrafo estrictamente independiente y no debe contener ningún otro tipo de texto (como detalles de envío, saludos, cierres o preguntas). El párrafo que contiene el precio debe contener ÚNICAMENTE la marca, modelo, medida y precio de la cubierta.
+      - SEPARACIÓN DE MENSAJES: Debes estructurar tu respuesta en párrafos independientes separados estrictamente por dos saltos de línea (\n\n) para que el sistema los envíe como burbujas de chat individuales. Si es necesario podés enviar 3, 4 o hasta un máximo absoluto de 5 mensajes en total (NUNCA superes el límite de 5 burbujas de mensajes):
         - Párrafo de precio de BF Goodrich aislado.
         - Párrafo de precio de Michelin aislado.
         - Párrafo con información de envíos gratis únicamente.
@@ -489,7 +515,7 @@ Tus tareas:
 
 Responde ÚNICAMENTE con un objeto JSON en este formato:
 {
-  "extracted_tire_size": "ANCHO/PERFIL RLLANTA" o null,
+  "extracted_tire_sizes": ["ANCHO/PERFIL RLLANTA"],
   "client_response": "texto redactado para enviar al cliente"
 }`
           },
@@ -504,12 +530,14 @@ Responde ÚNICAMENTE con un objeto JSON en este formato:
       const content = response.choices[0].message.content || "{}";
       const parsed = JSON.parse(content);
       return {
+        extracted_tire_sizes: parsed.extracted_tire_sizes || [],
         extracted_tire_size: parsed.extracted_tire_size || null,
         client_response: parsed.client_response || "Hola! Ahi te averiguo bien."
       };
     } catch (error) {
       console.error("Error in processAdminResponse:", error);
       return {
+        extracted_tire_sizes: [],
         extracted_tire_size: null,
         client_response: "Dejame que consulte bien y te confirmo en un ratito."
       };

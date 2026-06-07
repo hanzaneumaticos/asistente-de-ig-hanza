@@ -135,6 +135,28 @@ async function runTest() {
       console.log("❌ TEST 2 FALLÓ: El precio de Michelin sigue agrupado con envío o preguntas.");
     }
 
+    // --- TEST 3: Simulación de doble medida (Adelante y Atrás) ---
+    console.log("\n=== TEST 3: SIMULACIÓN DE DOBLE MEDIDA (ADELANTE/ATRÁS) ===");
+    const adminInput3 = "para adelante en llanta 19 ponele 245/45 R19 y para las traseras 275/40 R19. En BF Trail Terrain tenemos la delantera a 320.000 pesos y Michelin para atras a 350.000 pesos cada una. Hacemos envio gratis";
+    console.log(`Entrada de Karim (Admin): "${adminInput3}"`);
+    
+    const result3 = await aiService.processAdminResponse(adminInput3, "BMW X5", "19");
+    console.log("\n--- RESULTADO OBTENIDO ---");
+    console.log("Medidas extraídas:", result3.extracted_tire_sizes);
+    console.log("Respuesta redactada para el cliente:\n");
+    console.log(result3.client_response);
+    console.log("\n--------------------------");
+
+    // Verificar que extrajo ambas medidas con sus etiquetas correspondientes
+    const hasFront = result3.extracted_tire_sizes?.some(s => s.includes("245/45 R19") && s.toLowerCase().includes("adelante"));
+    const hasRear = result3.extracted_tire_sizes?.some(s => s.includes("275/40 R19") && s.toLowerCase().includes("atrás"));
+
+    if (hasFront && hasRear) {
+      console.log("✅ TEST 3 PASÓ: Se extrajeron ambas medidas con sus etiquetas de posición correctas.");
+    } else {
+      console.log("❌ TEST 3 FALLÓ: No se extrajeron las medidas con sus etiquetas correctas.");
+    }
+
   } catch (error: any) {
     console.error("Error al ejecutar la prueba:", error.message);
   }

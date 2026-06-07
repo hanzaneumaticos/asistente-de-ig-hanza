@@ -1104,7 +1104,9 @@
                 sidebarConsultation.style.display = "flex";
                 const v = chat.pending_consultation.vehicle || chat.vehicle_info || "Desconocido";
                 const r = chat.pending_consultation.rim || "Desconocido";
-                document.getElementById("sidebar-consultation-query").innerHTML = `El cliente preguntó qué medida lleva una <strong>${v}</strong> con rodado <strong>${r}</strong>.`;
+                const q = chat.pending_consultation.query || "";
+                const detailText = q ? `<br/><span style="font-size: 11px; opacity: 0.85; display: inline-block; margin-top: 4px; border-left: 2px solid #f97316; padding-left: 6px; font-style: italic;">"${q}"</span>` : "";
+                document.getElementById("sidebar-consultation-query").innerHTML = `El cliente preguntó qué medida lleva una <strong>${v}</strong> con rodado <strong>${r}</strong>.${detailText}`;
             } else {
                 sidebarConsultation.style.display = "none";
             }
