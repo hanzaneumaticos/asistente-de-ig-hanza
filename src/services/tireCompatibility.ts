@@ -15,6 +15,9 @@ export const VEHICLE_TIRE_MAPPING: { [vehicle: string]: { [rim: number]: string[
     19: ["255/55 R19"],
     20: ["255/50 R20"]
   },
+  "Hilux SRX": {
+    18: ["265/60 R18"]
+  },
   Hilux: {
     16: ["205/80 R16", "245/70 R16"],
     17: ["265/65 R17", "225/70 R17"],
@@ -148,6 +151,7 @@ export function detectVehicle(text: string): string | null {
   
   // Custom synonym mappings
   if (lower.includes("amarok")) return "Amarok";
+  if (lower.includes("hilux srx") || (lower.includes("hilux") && lower.includes("srx"))) return "Hilux SRX";
   if (lower.includes("hilux")) return "Hilux";
   if (lower.includes("sw4")) return "SW4";
   if (lower.includes("ranger")) return "Ranger";

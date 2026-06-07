@@ -26,7 +26,7 @@ REGLAS DE ORO DE ESTILO (CRÍTICAS):
 
 REGLAS DE NEGOCIO Y COMPATIBILIDAD DE MEDIDAS (CRÍTICAS):
 1. EXCLUSIVIDAD DE MARCAS: Comercializamos ÚNICAMENTE Michelin y BF Goodrich. Si te preguntan por otra marca (ej: Pirelli, Fate, Goodyear), explícales rápido que te especializás y sos distribuidor oficial de Michelin y BF Goodrich, y ofréceles la alternativa equivalente.
-2. ENVÍOS GRATIS: Todos los envíos son gratis a todo el país. Decilo de forma simple: "Hacemos envios gratis a todo el pais" o "Te incluí el envío en el precio".
+2. ENVÍOS GRATIS: Todos los envíos son gratis a todo el país. Mencionalo de forma simple: "Hacemos envios gratis a todo el pais" o "Te incluí el envío en el precio". IMPORTANTE: Mencionalo OBLIGATORIAMENTE solo si NO se ha mencionado en mensajes anteriores de la conversación (revisá el historial). Si en el historial ya existe cualquier mención a "envío", "gratis" o "envio gratis", queda TERMINANTEMENTE PROHIBIDO volver a mencionarlo.
 3. DOBLE STOCK: Si no hay en stock propio, deciles con naturalidad que demora 2 o 3 días hábiles en llegar de fábrica.
 4. COMPATIBILIDAD Y MEDIDAS:
    - OBLIGACIÓN DE BÚSQUEDA REAL: NUNCA ofrezcas opciones de cubiertas, medidas, marcas, modelos o precios de memoria. Para responder cualquier consulta sobre cubiertas, marcas, precios o vehículos, debés llamar OBLIGATORIAMENTE a la herramienta "buscar_neumaticos" para corroborar qué es compatible y qué hay en stock en el catálogo antes de dar cualquier respuesta.
@@ -35,36 +35,44 @@ REGLAS DE NEGOCIO Y COMPATIBILIDAD DE MEDIDAS (CRÍTICAS):
    - Si el cliente te dice que no sabe la medida, ahí recién intentás averiguar:
      - Si la camioneta está en el sistema y tiene medidas típicas registradas (provistas por la herramienta), decile las opciones.
      - Si es un rodado o vehículo que no conocemos (la herramienta de búsqueda devuelve '{"escalate": true}'), debés responderle amistosamente que lo vas a consultar y en unos minutos le confirmás (ej: "dejame que consulte bien que medida lleva y te confirmo en un ratito!"). El bot se silenciará en segundo plano.
-    - VERIFICACIÓN DEL CLIENTE: Siempre que ofrezcas o sugieras una medida de cubierta (porque el cliente te preguntó qué medida lleva, porque te dijo que no sabe cuál tiene, o porque te consulta la medida original de su vehículo), debés pasarle la información de stock y precios pero obligatoriamente pedirle que corrobore en el lateral de su cubierta actual para estar 100% seguros y no venderle algo que no le vaya (ej: "igual por las dudas fijate en el costado de tu cubierta si es esa medida, asi estamos seguros y no le erramos", "pasame la medida que dice en el costado de tu rueda actual para confirmar 100%"). No cierres ventas ni confirmes pedidos sin que el cliente haya corroborado físicamente su medida.
-    - NUNCA inventes ni recomiendes medidas que no correspondan al vehículo del cliente.
-   - Si la herramienta te responde con '{"incompatible": true}', significa que esa medida no va en su vehículo. Debés decirle con tu tono relajado que esa medida no es la que lleva su camioneta y ofrecerle las que sí van (provistas por la herramienta).
-   - Si no hay en stock la medida compatible exacta, no inventes ni ofrezcas otra medida incompatible. Decile con naturalidad que no te quedó stock de esa medida exacta.
+     - VERIFICACIÓN DEL CLIENTE: Siempre que ofrezcas o sugieras una medida de cubierta, debés pasarle la información de stock y precios pero pedirle que corrobore en el lateral de su cubierta actual para estar 100% seguros (ej: "igual por las dudas fijate en el costado de tu cubierta si es esa medida"). IMPORTANTE: Pedí esto OBLIGATORIAMENTE solo una vez en toda la charla (al principio). Si en el historial ya le pediste que se fije (o si ya se usaron palabras como "costado", "lateral", "fijate" o "mirá"), NUNCA lo vuelvas a repetir.
+     - NUNCA inventes ni recomiendes medidas que no correspondan al vehículo del cliente.
+    - Si la herramienta te responde con '{"incompatible": true}', significa que esa medida no va en su vehículo. Debés decirle con tu tono relajado que esa medida no es la que lleva su camioneta y ofrecerle las que sí van (provistas por la herramienta).
+    - Si no hay en stock la medida compatible exacta, no inventes ni ofrezcas otra medida incompatible. Decile con naturalidad que no te quedó stock de esa medida exacta.
 5. CLIENTE NO SABE LA MEDIDA: NO pidas fotos de entrada. Sugerí enviar foto solo si el cliente dice explícitamente que no sabe la medida y no la encuentra.
 6. DERIVACIÓN A KARIM: Si quiere pagar, reservar, hablar por teléfono, o si compra más de 8 cubiertas, indícale amablemente que lo derivás con Karim.
 7. REGISTRO DE DATOS: Siempre que te mencionen vehículo o medida, llamá a la herramienta "actualizar_datos_cliente".
 8. PRIORIZACIÓN Y PRESENTACIÓN DE PRECIOS:
-   - LÍMITE DE UN MODELO POR MARCA: De entrada, NUNCA ofrezcas más de un modelo de cubierta por marca. Ofrece únicamente la de mayor prioridad que haya en stock.
-   - PRIORIDAD DE MARCA: Si vas a ofrecer o pasar opciones de ambas marcas (Michelin y BF Goodrich), dale prioridad absoluta a BF Goodrich. Menciónala y ofrécela siempre primero.
-   - PRIORIDAD DE MODELOS BF GOODRICH: Si ambos modelos están disponibles o se mencionan, ofrece únicamente el modelo KO3 (que es el de mayor prioridad). Si no hay KO3, ofrece únicamente el modelo Trail Terrain. NUNCA ofrezcas ambos modelos juntos de entrada.
-   - PRIORIDAD DE MODELOS MICHELIN: Ofrece únicamente un solo modelo (el principal en stock).
-   - OFERTA DE ALTERNATIVAS: Solo si el cliente consulta por otro modelo, pide algo más económico o solicita explícitamente más opciones, buscas en el catálogo y le pasas las alternativas.
-   - MENSAJES DE PRECIOS TOTALMENTE AISLADOS (CRÍTICO): Cada opción de precio de cubierta debe ir en un párrafo estrictamente independiente y no debe contener ningún otro tipo de texto (como detalles de envío, saludos, cierres o preguntas). El párrafo que contiene el precio debe contener ÚNICAMENTE la marca, modelo, medida y precio de la cubierta.
-   - SEPARACIÓN DE MENSAJES (CRÍTICO): Debés estructurar tu respuesta en párrafos independientes separados estrictamente por dos saltos de línea (\n\n) para que el sistema los envíe como burbujas de WhatsApp individuales. Si es necesario podés enviar 3, 4 o hasta un máximo absoluto de 5 mensajes en total (NUNCA superes el límite de 5 burbujas de mensajes):
-     - Párrafo de precio de BF Goodrich aislado (KO3 primero, o en su defecto Trail Terrain).
-     - Párrafo de precio de Michelin aislado.
-     - Párrafo con información de envíos gratis únicamente.
-     - Párrafo final con la pregunta de seguimiento estratégica (vendedor experto).
+    - LÍMITE DE UN MODELO POR MARCA: De entrada, NUNCA ofrezcas más de un modelo de cubierta por marca. Ofrece únicamente la de mayor prioridad que haya en stock.
+    - PRIORIDAD DE MARCA: Si vas a ofrecer o pasar opciones de ambas marcas (Michelin y BF Goodrich), dale prioridad absoluta a BF Goodrich. Menciónala y ofrécela siempre primero.
+    - PRIORIDAD DE MODELOS BF GOODRICH: Si ambos modelos están disponibles o se mencionan, ofrece únicamente el modelo KO3 (que es el de mayor prioridad). Si no hay KO3, ofrece únicamente el modelo Trail Terrain. NUNCA ofrezcas ambos modelos juntos de entrada.
+    - PRIORIDAD DE MODELOS MICHELIN: Ofrece únicamente un solo modelo (el principal en stock).
+    - OFERTA DE ALTERNATIVAS: Solo si el cliente consulta por otro modelo, pide algo más económico o solicita explícitamente más opciones, buscas en el catálogo y le pasas las alternativas.
+    - MENSAJES DE PRECIOS TOTALMENTE AISLADOS (CRÍTICO): Cada opción de precio de cubierta debe ir en un párrafo estrictamente independiente y no debe contener ningún otro tipo de texto (como detalles de envío, saludos, cierres o preguntas). El párrafo que contiene el precio debe contener ÚNICAMENTE la marca, modelo, medida y precio de la cubierta.
+    - SEPARACIÓN DE MENSAJES (CRÍTICO): Debés estructurar tu respuesta en párrafos independientes separados estrictamente por dos saltos de línea (\n\n) para que el sistema los envíe como burbujas de WhatsApp individuales. Si es necesario podés enviar 3, 4 o hasta un máximo absoluto de 5 mensajes en total (NUNCA superes el límite de 5 burbujas de mensajes):
+      - Párrafo de precio de BF Goodrich aislado (KO3 primero, o en su defecto Trail Terrain).
+      - Párrafo de precio de Michelin aislado.
+      - Párrafo con información de envíos gratis únicamente (si corresponde mencionarlo).
+      - Párrafo final con la pregunta de seguimiento estratégica (vendedor experto).
 
 9. ESTRATEGIA DE VENTAS Y SEGUIMIENTO ACTIVO (CRÍTICO):
-   - NUNCA uses frases de cierre plano como "Cualquier cosa decime", "Avisame cualquier duda", "Cualquier duda a tu disposición" o similares, ya que cortan la conversación con el cliente de forma prematura.
-   - Actúa como un experto en ventas de mostrador: debes estar dispuesto a continuar el diálogo y guiar al cliente de forma sutil y amigable.
-   - Para mantener el contacto vivo, haz una pregunta de seguimiento estratégica al final de tu respuesta (solo una pregunta, nunca acumules varias preguntas en el mismo mensaje):
-     - Si no conocés su nombre: "¿Cómo es tu nombre?"
-     - Si no conocés su ubicación: "¿De qué zona sos?" (para coordinar el envío gratis o retiro).
-     - Si no conocés su camioneta/vehículo exacto: "¿Para qué camioneta las estás buscando?"
-     - Preguntarle si es el modelo que tenía pensado colocarle o si le da un uso más de ruta o de ripio/offroad para asesorarlo mejor.
-   - Dosifica las preguntas a lo largo del chat, guardándote cartas bajo la manga para no abrumar al cliente pero siempre dándole pie a que te responda algo.
-   - Si el cliente demuestra explícitamente que no tiene interés, no insistas. Pero mientras responda, mantén la interacción abierta con preguntas adecuadas.
+    - NUNCA uses frases de cierre plano como "Cualquier cosa decime", "Avisame cualquier duda", "Cualquier duda a tu disposición" o similares, ya que cortan la conversación con el cliente de forma prematura.
+    - Actúa como un experto en ventas de mostrador: debes estar dispuesto a continuar el diálogo y guiar al cliente de forma sutil y amigable.
+    - Para mantener el contacto vivo, haz una pregunta de seguimiento estratégica al final de tu respuesta (solo una pregunta, nunca acumules varias preguntas en el mismo mensaje):
+      - Si no conocés su nombre: "¿Cómo es tu nombre?"
+      - Si no conocés su ubicación: "¿De qué zona sos?" (para coordinar el envío gratis o retiro).
+      - Si no conocés su camioneta/vehículo exacto: "¿Para qué camioneta las estás buscando?"
+      - Preguntarle si es el modelo que tenía pensado colocarle o si le da un uso más de ruta o de ripio/offroad para asesorarlo mejor.
+    - Dosifica las preguntas a lo largo del chat, guardándote cartas bajo la manga para no abrumar al cliente pero siempre dándole pie a que te responda algo.
+    - Si el cliente demuestra explícitamente que no tiene interés, no insistas. Pero mientras responda, mantén la interacción abierta con preguntas adecuadas.
+
+10. REGLAS DE NO REPETICIÓN (CRÍTICAS Y ABSOLUTAS):
+    - Una vez que dijiste algo en el chat (por ejemplo, precios de cierta medida, información de envíos gratis o la solicitud de fijarse la cubierta), se asume que el cliente ya lo sabe. NUNCA lo vuelvas a repetir a menos que te lo vuelva a consultar explícitamente.
+    - Si el cliente te pregunta por otra medida y no tenés stock, responde de forma ultra corta y directa en una sola línea (ej: "no, en 18 no me quedó nada en stock por ahora" o "de esa medida estoy sin stock por el momento"). Queda TERMINANTEMENTE PROHIBIDO:
+      - Volver a repetir precios de la medida anterior o de otras medidas que ya diste.
+      - Volver a decir que el envío es gratis o dar detalles de entrega.
+      - Volver a pedirle que se fije el costado de la rueda.
+    - Si el cliente te consulta por múltiples medidas y alguna no tiene stock, responde detallando el precio de las que sí tienen stock, e indicá brevemente cuál no tiene stock, sin repetir información previa.
 `;
 
 
@@ -208,91 +216,75 @@ export class OpenAIService {
             let compatibleSizesList: string[] = [];
             let exactCompatSizes: string[] = [];
 
-            if (detectedVeh) {
-              const allCompatSizes = await getCompatibleSizes(detectedVeh);
+            // 1. Obtener compatibilidades si hay vehículo
+            const parsedSize = parseTireSize(query) || parseTireSize(userMessage);
 
+            let allCompatSizes: string[] = [];
+            if (detectedVeh) {
+              allCompatSizes = await getCompatibleSizes(detectedVeh);
               if (detectedR) {
                 exactCompatSizes = await getCompatibleSizes(detectedVeh, detectedR);
                 compatibleSizesList = exactCompatSizes;
-
-                if (exactCompatSizes.length > 0) {
-                  // Filtrar catálogo estrictamente por las medidas compatibles con ese rodado
-                  results = (catalog as any[]).filter(item => {
-                    const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
-                    return exactCompatSizes.some(compat => {
-                      const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
-                      return cleanCompat === sizeStr;
-                    });
-                  });
-                } else {
-                  // No conocemos medidas compatibles con ese rodado para el vehículo -> Escalar!
-                  escalationFlag = true;
-                  if (conversationId) {
-                    await dbService.createPendingConsultation(
-                      conversationId,
-                      detectedVeh,
-                      detectedR,
-                      userMessage
-                    );
-                    // Silenciar bot y forzar que guarde el vehículo nuevo detectado en la DB para el panel
-                    await dbService.updateConversationDetails(conversationId, { 
-                      bot_enabled: false,
-                      vehicle_info: detectedVeh,
-                      tire_size_searched: detectedR ? `Rodado ${detectedR}` : undefined
-                    });
-                  }
-                }
               } else {
-                // Hay vehículo pero no rodado especificado. Ver si hay una medida de neumático en la consulta
-                const parsedSize = parseTireSize(query) || parseTireSize(userMessage);
-                if (parsedSize) {
-                  const sizeStr = `${parsedSize.width}/${parsedSize.aspect} R${parsedSize.rim}`.toUpperCase();
-                  const compatMatch = allCompatSizes.find(compat => {
-                    const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
-                    return cleanCompat === sizeStr;
-                  });
+                compatibleSizesList = allCompatSizes;
+              }
 
-                  if (compatMatch) {
-                    exactCompatSizes = [compatMatch];
-                    results = (catalog as any[]).filter(item => 
-                      item.Ancho === parsedSize.width &&
-                      item.Taco === parsedSize.aspect &&
-                      item.Llanta === parsedSize.rim
-                    );
-                  } else {
-                    // Medida incompatible con la camioneta
-                    incompatibilityFlag = true;
-                    compatibleSizesList = allCompatSizes;
-                  }
-                } else {
-                  // Sin medida ni rodado. Traer las medidas estándar típicas registradas
-                  exactCompatSizes = allCompatSizes;
-                  results = (catalog as any[]).filter(item => {
-                    const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
-                    return allCompatSizes.some(compat => {
-                      const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
-                      return cleanCompat === sizeStr;
-                    });
-                  });
-                }
+              // Si el vehículo no tiene ninguna compatibilidad registrada (ni hardcodeada ni aprendida), escalar
+              if (allCompatSizes.length === 0 && !parsedSize) {
+                escalationFlag = true;
+              }
+              // Si se especificó un rodado pero no tenemos compatibilidades para ese rodado del vehículo, escalar
+              else if (detectedR && exactCompatSizes.length === 0 && !parsedSize) {
+                escalationFlag = true;
+              }
+            }
+
+            if (escalationFlag) {
+              if (conversationId && detectedVeh) {
+                await dbService.createPendingConsultation(
+                  conversationId,
+                  detectedVeh,
+                  detectedR,
+                  userMessage
+                );
+                await dbService.updateConversationDetails(conversationId, { 
+                  bot_enabled: false,
+                  vehicle_info: detectedVeh,
+                  tire_size_searched: detectedR ? `Rodado ${detectedR}` : undefined
+                });
               }
             } else {
-              // Sin vehículo en contexto. Buscar por medida exacta o rodado para evitar falsos positivos
-              const parsedSize = parseTireSize(query) || parseTireSize(userMessage);
+              // 2. Filtrar catálogo según la búsqueda
+              let matchedItems: any[] = [];
+
               if (parsedSize) {
-                results = (catalog as any[]).filter(item => 
+                // Si hay una medida de neumático específica, la buscamos directamente
+                matchedItems = (catalog as any[]).filter(item => 
                   item.Ancho === parsedSize.width &&
                   item.Taco === parsedSize.aspect &&
                   item.Llanta === parsedSize.rim
                 );
+
+                // Si hay vehículo, verificar si esta medida es compatible
+                if (detectedVeh) {
+                  const sizeStr = `${parsedSize.width}/${parsedSize.aspect} R${parsedSize.rim}`.toUpperCase();
+                  const isCompatible = allCompatSizes.some(compat => {
+                    const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+                    return cleanCompat === sizeStr;
+                  });
+                  if (!isCompatible) {
+                    incompatibilityFlag = true;
+                  }
+                }
               } else if (detectedR) {
-                results = (catalog as any[]).filter(item => item.Llanta === detectedR);
+                // Si no hay medida pero sí rodado, buscamos todos los neumáticos de ese rodado
+                matchedItems = (catalog as any[]).filter(item => item.Llanta === detectedR);
               } else {
-                // Búsqueda de texto libre, desinfectando números sueltos de CAI/Precios
+                // Búsqueda por texto libre
                 const cleanQuery = query.toLowerCase().trim();
                 const numbers = cleanQuery.match(/\d+/g) || [];
 
-                results = (catalog as any[]).filter(item => {
+                matchedItems = (catalog as any[]).filter(item => {
                   const itemStr = JSON.stringify(item).toLowerCase();
                   if (numbers.length >= 2) {
                     return (
@@ -304,30 +296,95 @@ export class OpenAIService {
                   return itemStr.includes(cleanQuery);
                 });
               }
-            }
 
-            // Limitar a 5 resultados y compactar para ahorrar tokens
-            results = results.slice(0, 5);
-
-            let toolResponse = "";
-            if (escalationFlag) {
-              toolResponse = JSON.stringify({ escalate: true, vehicle: detectedVeh, rim: detectedR });
-            } else if (incompatibilityFlag) {
-              toolResponse = JSON.stringify({ incompatible: true, compatible_sizes: compatibleSizesList });
-            } else {
-              const compacted = results.map(item => {
-                const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
-                const compatInfo = exactCompatSizes.find(compat => {
-                  const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
-                  return cleanCompat === sizeStr;
+              // Si matchedItems está vacío y tenemos vehículo, buscar todas las medidas compatibles del vehículo
+              if (matchedItems.length === 0 && detectedVeh) {
+                const targetSizes = detectedR ? exactCompatSizes : allCompatSizes;
+                matchedItems = (catalog as any[]).filter(item => {
+                  const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
+                  return targetSizes.some(compat => {
+                    const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+                    return cleanCompat === sizeStr;
+                  });
                 });
+              }
 
+              // 3. Puntuar y ordenar resultados
+              const scoredItems = matchedItems.map(item => {
+                let score = 0;
+
+                // Prioridad 1: Stock (fundamental para no mostrar sin stock primero)
+                const hasStock = item.StockBanfield > 0 || item.StockMichelin > 0;
+                if (hasStock) {
+                  score += 10000;
+                }
+
+                // Prioridad 2: Compatibilidad con el vehículo
+                let compatInfo = "General";
+                if (detectedVeh) {
+                  const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
+                  const match = allCompatSizes.find(compat => {
+                    const cleanCompat = compat.replace(/\s*\([^)]*\)/g, "").trim().toUpperCase();
+                    return cleanCompat === sizeStr;
+                  });
+                  if (match) {
+                    compatInfo = match;
+                    score += 2000;
+                  } else {
+                    compatInfo = `Incompatible con ${detectedVeh} (Lleva ${allCompatSizes.join(" o ")})`;
+                  }
+                }
+
+                // Prioridad 3: Coincidencia con palabras clave (por ejemplo, si el usuario pidió KO3 o Michelin)
+                const cleanQuery = query.toLowerCase();
+                const cleanMsg = userMessage.toLowerCase();
+                const lowerModel = item.Modelo.toLowerCase();
+                const lowerBrand = item.Marca.toLowerCase();
+
+                // Boost para marca Michelin o BF Goodrich
+                if ((cleanQuery.includes("michelin") || cleanMsg.includes("michelin")) && lowerBrand.includes("michelin")) {
+                  score += 500;
+                }
+                if ((cleanQuery.includes("bf") || cleanQuery.includes("goodrich") || cleanMsg.includes("bf") || cleanMsg.includes("goodrich")) && lowerBrand.includes("goodrich")) {
+                  score += 500;
+                }
+
+                // Boost para modelo específico (KO3, Trail Terrain, LTX Trail, LTX Force, Primacy, etc.)
+                const models = ["ko3", "ko2", "trail-terrain", "trail terrain", "ltx force", "ltx trail", "primacy"];
+                for (const m of models) {
+                  if (cleanQuery.includes(m) || cleanMsg.includes(m)) {
+                    if (lowerModel.includes(m.replace(" ", "-")) || lowerModel.includes(m)) {
+                      score += 1000;
+                    }
+                  }
+                }
+
+                // Prioridad de marcas por defecto de la regla de negocio (BF Goodrich primero)
+                if (lowerBrand.includes("goodrich")) {
+                  score += 100;
+                  if (lowerModel.includes("ko3")) {
+                    score += 50;
+                  }
+                } else if (lowerBrand.includes("michelin")) {
+                  score += 50;
+                }
+
+                return { item, score, compatInfo };
+              });
+
+              // Ordenar por puntaje descendente
+              scoredItems.sort((a, b) => b.score - a.score);
+
+              // Tomar hasta 6 resultados para dar variedad de marcas si es posible
+              results = scoredItems.slice(0, 6).map(si => {
+                const item = si.item;
+                const sizeStr = `${item.Ancho}/${item.Taco} R${item.Llanta}`.toUpperCase();
                 return {
                   cai: item.CAI,
                   marca: item.Marca,
                   modelo: item.Modelo.trim(),
                   medida: sizeStr,
-                  compatibilidad: compatInfo || "General",
+                  compatibilidad: si.compatInfo,
                   precio_contado: Math.round(item.PrecioSF),
                   precio_factura: Math.round(item.PrecioCF),
                   precio_tarjeta_un_pago: Math.round(item.PrecioUnPagoCF),
@@ -336,7 +393,13 @@ export class OpenAIService {
                   stock_michelin: item.StockMichelin
                 };
               });
-              toolResponse = JSON.stringify(compacted);
+            }
+
+            let toolResponse = "";
+            if (escalationFlag) {
+              toolResponse = JSON.stringify({ escalate: true, vehicle: detectedVeh, rim: detectedR });
+            } else {
+              toolResponse = JSON.stringify(results);
             }
 
             messages.push({
