@@ -47,17 +47,34 @@ app.get("/webhook", (req, res) => {
 
 // Helper para dividir respuestas largas en 2 o 3 mensajes naturales
 function splitIntoMessages(text: string): string[] {
-  const paragraphs = text.split(/\n+/).map(p => p.trim()).filter(Boolean);
+  // Pre-formateo para separar precios seguidos de texto
+  let formattedText = text;
+
+  // 1. Si hay un precio con signo $ seguido de texto (nueva oración que empieza con mayúscula), insertar un doble salto de línea
+  // Ejemplo: "$478,010 Hacemos envíos" -> "$478,010\n\nHacemos envíos"
+  formattedText = formattedText.replace(/(\$\d+[\d.,]*(?:\s*cada\s*un[oa]|\s*c\/u)?)([.!?]*\s+)([A-ZÁÉÍÓÚÑ])/g, "$1$2\n\n$3");
+
+  // 2. Si hay un precio expresado en pesos seguido de nueva oración que empieza con mayúscula (ej: "380.000 pesos cada una. El envío...")
+  formattedText = formattedText.replace(/(\b\d+[\d.,]*\s*pesos(?:\s*cada\s*un[oa]|\s*c\/u)?)([.!?]*\s+)([A-ZÁÉÍÓÚÑ])/g, "$1$2\n\n$3");
+
+  const paragraphs = formattedText.split(/\n+/).map(p => p.trim()).filter(Boolean);
   const messages: string[] = [];
 
   for (const paragraph of paragraphs) {
-    if (paragraph.length < 220) {
+    const isPriceLine = paragraph.includes("$") || paragraph.toLowerCase().includes("pesos");
+
+    // Si es una línea de precio, la enviamos aislada directamente sin reagrupar
+    if (isPriceLine) {
+      messages.push(paragraph);
+    } else if (paragraph.length < 220) {
       messages.push(paragraph);
     } else {
       const sentences = paragraph.match(/[^.!?]+[.!?]+(\s|$)/g) || [paragraph];
       let currentMessage = "";
       for (const sentence of sentences) {
-        if ((currentMessage + sentence).length < 220) {
+        const sentenceContainsPrice = sentence.includes("$") || sentence.toLowerCase().includes("pesos");
+
+        if (!sentenceContainsPrice && (currentMessage + sentence).length < 220) {
           currentMessage += (currentMessage ? " " : "") + sentence.trim();
         } else {
           if (currentMessage) messages.push(currentMessage);
@@ -68,16 +85,7 @@ function splitIntoMessages(text: string): string[] {
     }
   }
 
-  if (messages.length > 3) {
-    const finalMessages = [
-      messages[0],
-      messages[1],
-      messages.slice(2).join(" ")
-    ];
-    return finalMessages.filter(Boolean);
-  }
-
-  return messages.filter(Boolean);
+  return messages.filter(Boolean).slice(0, 5);
 }
 
 // Extraer y guardar detalles (vehículo y medida de neumático) en segundo plano
