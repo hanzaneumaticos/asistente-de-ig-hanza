@@ -401,7 +401,7 @@
     "PrecioCF": 310040.1395,
     "PrecioUnPagoCF": 318064.7078,
     "PrecioLista": 364753.10527421255,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -416,7 +416,7 @@
     "PrecioCF": 310040.1395,
     "PrecioUnPagoCF": 318064.7078,
     "PrecioLista": 364753.10527421255,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -431,7 +431,7 @@
     "PrecioCF": 440847.4794,
     "PrecioUnPagoCF": 452257.6495,
     "PrecioLista": 518644.0934639302,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -446,7 +446,7 @@
     "PrecioCF": 464049.9784,
     "PrecioUnPagoCF": 476060.6837,
     "PrecioLista": 545941.1510146634,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 55
   },
   {
@@ -461,7 +461,7 @@
     "PrecioCF": 201228.3562,
     "PrecioUnPagoCF": 206436.6196,
     "PrecioLista": 236739.24262210017,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -1286,7 +1286,7 @@
     "PrecioCF": 375142.8358,
     "PrecioUnPagoCF": 384852.4151,
     "PrecioLista": 441344.51273082726,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -1316,7 +1316,7 @@
     "PrecioCF": 240485.7449,
     "PrecioUnPagoCF": 246710.0818,
     "PrecioLista": 282924.40576839837,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -1331,7 +1331,7 @@
     "PrecioCF": 330258.6129,
     "PrecioUnPagoCF": 338806.4829,
     "PrecioLista": 388539.54461854533,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 283
   },
   {
@@ -1346,7 +1346,7 @@
     "PrecioCF": 501656.5596,
     "PrecioUnPagoCF": 514640.6117,
     "PrecioLista": 590184.1877388556,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -1781,7 +1781,7 @@
     "PrecioCF": 336535.9359,
     "PrecioUnPagoCF": 345246.2778,
     "PrecioLista": 395924.6304686766,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 6
   },
   {
@@ -6431,7 +6431,7 @@
     "PrecioCF": 651476.028,
     "PrecioUnPagoCF": 668337.7605,
     "PrecioLista": 766442.3859378484,
-    "StockBanfield": 0,
+    "StockBanfield": 3,
     "StockMichelin": 1
   },
   {
@@ -6521,7 +6521,7 @@
     "PrecioCF": 406823.2004,
     "PrecioUnPagoCF": 417352.7421,
     "PrecioLista": 478615.5299209686,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 116
   },
   {
@@ -6551,7 +6551,7 @@
     "PrecioCF": 569216.6353,
     "PrecioUnPagoCF": 583949.3012,
     "PrecioLista": 669666.6297691319,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 8
   },
   {
@@ -6956,7 +6956,7 @@
     "PrecioCF": 476034.8556,
     "PrecioUnPagoCF": 488355.7578,
     "PrecioLista": 560041.0066131848,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 14
   },
   {
@@ -6986,7 +6986,7 @@
     "PrecioCF": 496570.5633,
     "PrecioUnPagoCF": 509422.9778,
     "PrecioLista": 584200.6626674607,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 17
   },
   {
@@ -7001,7 +7001,7 @@
     "PrecioCF": 706891.2355,
     "PrecioUnPagoCF": 725187.244,
     "PrecioLista": 831636.7476909168,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 6
   },
   {
@@ -7436,7 +7436,7 @@
     "PrecioCF": 520092.5686,
     "PrecioUnPagoCF": 533553.7881,
     "PrecioLista": 611873.6101599183,
-    "StockBanfield": 0,
+    "StockBanfield": 2,
     "StockMichelin": 58
   },
   {
@@ -7481,7 +7481,7 @@
     "PrecioCF": 510048.6075,
     "PrecioUnPagoCF": 523249.8656,
     "PrecioLista": 600057.1853246703,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 21
   },
   {
@@ -7526,7 +7526,7 @@
     "PrecioCF": 711404.4963,
     "PrecioUnPagoCF": 729817.3186,
     "PrecioLista": 836946.4662831441,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 12
   },
   {
@@ -7961,7 +7961,7 @@
     "PrecioCF": 504275.6106,
     "PrecioUnPagoCF": 517327.45,
     "PrecioLista": 593265.4242763605,
-    "StockBanfield": 0,
+    "StockBanfield": 16,
     "StockMichelin": 181
   },
   {
@@ -7976,7 +7976,7 @@
     "PrecioCF": 478529.352,
     "PrecioUnPagoCF": 490914.8176,
     "PrecioLista": 562975.7082435444,
-    "StockBanfield": 0,
+    "StockBanfield": 16,
     "StockMichelin": 0
   },
   {
@@ -8006,7 +8006,7 @@
     "PrecioCF": 468240.9709,
     "PrecioUnPagoCF": 480360.149,
     "PrecioLista": 550871.7305163082,
-    "StockBanfield": 0,
+    "StockBanfield": 16,
     "StockMichelin": 0
   },
   {
@@ -8021,7 +8021,7 @@
     "PrecioCF": 643347.6551,
     "PrecioUnPagoCF": 659999.0062,
     "PrecioLista": 756879.5942552421,
-    "StockBanfield": 0,
+    "StockBanfield": 16,
     "StockMichelin": 8
   },
   {
@@ -8036,7 +8036,7 @@
     "PrecioCF": 586987.9556,
     "PrecioUnPagoCF": 602180.585,
     "PrecioLista": 690574.0654073758,
-    "StockBanfield": 0,
+    "StockBanfield": 2,
     "StockMichelin": 34
   },
   {
@@ -8051,7 +8051,7 @@
     "PrecioCF": 649488.313,
     "PrecioUnPagoCF": 666298.5987,
     "PrecioLista": 764103.8976220936,
-    "StockBanfield": 4,
+    "StockBanfield": 2,
     "StockMichelin": 0
   },
   {
@@ -8156,7 +8156,7 @@
     "PrecioCF": 746604.6412,
     "PrecioUnPagoCF": 765928.526,
     "PrecioLista": 878358.4013603642,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -9026,7 +9026,7 @@
     "PrecioCF": 255585.0868,
     "PrecioUnPagoCF": 262200.2303,
     "PrecioLista": 300688.3374572,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 3
   },
   {
@@ -9161,7 +9161,7 @@
     "PrecioCF": 273712.9651,
     "PrecioUnPagoCF": 280797.3006,
     "PrecioLista": 322015.2530085167,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -9281,7 +9281,7 @@
     "PrecioCF": 272175.2454,
     "PrecioUnPagoCF": 279219.7812,
     "PrecioLista": 320206.17108046863,
-    "StockBanfield": 0,
+    "StockBanfield": 2,
     "StockMichelin": 0
   },
   {
@@ -9326,7 +9326,7 @@
     "PrecioCF": 274108.8181,
     "PrecioUnPagoCF": 281203.3993,
     "PrecioLista": 322480.962466291,
-    "StockBanfield": 0,
+    "StockBanfield": 16,
     "StockMichelin": 23
   },
   {
@@ -9701,7 +9701,7 @@
     "PrecioCF": 387170.8174,
     "PrecioUnPagoCF": 397191.7091,
     "PrecioLista": 455495.0792396071,
-    "StockBanfield": 0,
+    "StockBanfield": 5,
     "StockMichelin": 11
   },
   {
@@ -10136,7 +10136,7 @@
     "PrecioCF": 768183.0751,
     "PrecioUnPagoCF": 788065.4606,
     "PrecioLista": 903744.7942519402,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -10811,7 +10811,7 @@
     "PrecioCF": 288508.9119,
     "PrecioUnPagoCF": 295976.2014,
     "PrecioLista": 339422.24933661084,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
@@ -10991,7 +10991,7 @@
     "PrecioCF": 328312.4065,
     "PrecioUnPagoCF": 336809.904,
     "PrecioLista": 386249.88995818194,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 74
   },
   {
@@ -11036,7 +11036,7 @@
     "PrecioCF": 444113.2287,
     "PrecioUnPagoCF": 455607.9241,
     "PrecioLista": 522486.15145051625,
-    "StockBanfield": 0,
+    "StockBanfield": 4,
     "StockMichelin": 0
   },
   {
