@@ -137,6 +137,11 @@ export const VEHICLE_TIRE_MAPPING: { [vehicle: string]: { [rim: number]: string[
   Sprinter: {
     15: ["195/70 R15"],
     16: ["225/75 R16", "205/75 R16", "195/75 R16"]
+  },
+  Bora: {
+    15: ["195/65 R15"],
+    16: ["205/55 R16"],
+    17: ["225/45 R17"]
   }
 };
 
@@ -179,6 +184,7 @@ export function detectVehicle(text: string): string | null {
   if (lower.includes("berlingo")) return "Berlingo";
   if (lower.includes("fiorino")) return "Fiorino";
   if (lower.includes("sprinter")) return "Sprinter";
+  if (lower.includes("bora")) return "Bora";
 
   return null;
 }
