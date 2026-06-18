@@ -474,6 +474,7 @@ export class OpenAIService {
         messages.push({
           role: "assistant",
           content: firstMessage.content || "",
+          tool_calls: firstMessage.tool_calls,
         });
 
         for (const toolCall of firstMessage.tool_calls as any[]) {
