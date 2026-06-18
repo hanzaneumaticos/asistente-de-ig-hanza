@@ -116,6 +116,24 @@ function splitIntoMessages(text: string): string[] {
   return messages.filter(Boolean).slice(0, 5);
 }
 
+async function sendWhatsAppResponses(to: string, responses: string[]) {
+  for (let i = 0; i < responses.length; i++) {
+    await metaService.sendWhatsAppMessage(to, responses[i]);
+    if (i < responses.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+  }
+}
+
+async function sendInstagramResponses(to: string, responses: string[]) {
+  for (let i = 0; i < responses.length; i++) {
+    await metaService.sendInstagramMessage(to, responses[i]);
+    if (i < responses.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+  }
+}
+
 // Extraer y guardar detalles (vehículo y medida de neumático) en segundo plano
 function extractAndSaveDetails(conversationId: string, text: string) {
   try {
@@ -281,18 +299,10 @@ app.post("/webhook", async (req, res) => {
           const aiResponse = await aiService.generateResponse(text || "", dbHistory, conv.id);
           
           // Guardar respuesta saliente
-          await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
 
-          // Dividir respuestas
           const individualResponses = splitIntoMessages(aiResponse || "");
-
-          // Enviar cada respuesta con delay humano mínimo entre ellas
-          for (let i = 0; i < individualResponses.length; i++) {
-            await metaService.sendWhatsAppMessage(from, individualResponses[i]);
-            if (i < individualResponses.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5s entre burbujas
-            }
-          }
+          await sendWhatsAppResponses(from, individualResponses);
+          await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
 
         } else if (type === "audio") {
           console.log(`WhatsApp audio from ${from}`);
@@ -314,15 +324,9 @@ app.post("/webhook", async (req, res) => {
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(transcription, dbHistory, conv.id);
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
-                
                 const individualResponses = splitIntoMessages(aiResponse || "");
-                for (let i = 0; i < individualResponses.length; i++) {
-                  await metaService.sendWhatsAppMessage(from, individualResponses[i]);
-                  if (i < individualResponses.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                  }
-                }
+                await sendWhatsAppResponses(from, individualResponses);
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
               } else {
                 await metaService.sendWhatsAppMessage(from, "Disculpá, no logré escuchar bien tu audio. ¿Me lo podrías escribir en texto?");
               }
@@ -360,15 +364,9 @@ app.post("/webhook", async (req, res) => {
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
                 
-                // Guardar y enviar la respuesta
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
                 const individualResponses = splitIntoMessages(aiResponse || "");
-                for (let i = 0; i < individualResponses.length; i++) {
-                  await metaService.sendWhatsAppMessage(from, individualResponses[i]);
-                  if (i < individualResponses.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                  }
-                }
+                await sendWhatsAppResponses(from, individualResponses);
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
               } else {
                 // No detectado
                 await metaService.sendWhatsAppMessage(
@@ -424,15 +422,9 @@ app.post("/webhook", async (req, res) => {
 
           const dbHistory = await dbService.getMessageHistory(conv.id, 15);
           const aiResponse = await aiService.generateResponse(message.text || "", dbHistory, conv.id);
-          await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
-
           const individualResponses = splitIntoMessages(aiResponse || "");
-          for (let i = 0; i < individualResponses.length; i++) {
-            await metaService.sendInstagramMessage(senderId, individualResponses[i]);
-            if (i < individualResponses.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 1500));
-            }
-          }
+          await sendInstagramResponses(senderId, individualResponses);
+          await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
         } else if (message.attachments) {
           const imgAttachment = message.attachments.find((att: any) => att.type === "image");
           const audioAttachment = message.attachments.find((att: any) => att.type === "audio" || att.type === "voice");
@@ -457,15 +449,9 @@ app.post("/webhook", async (req, res) => {
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
-                
                 const individualResponses = splitIntoMessages(aiResponse || "");
-                for (let i = 0; i < individualResponses.length; i++) {
-                  await metaService.sendInstagramMessage(senderId, individualResponses[i]);
-                  if (i < individualResponses.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                  }
-                }
+                await sendInstagramResponses(senderId, individualResponses);
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
               } else {
                 await metaService.sendInstagramMessage(
                   senderId,
@@ -495,15 +481,9 @@ app.post("/webhook", async (req, res) => {
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(transcription, dbHistory, conv.id);
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
-                
                 const individualResponses = splitIntoMessages(aiResponse || "");
-                for (let i = 0; i < individualResponses.length; i++) {
-                  await metaService.sendInstagramMessage(senderId, individualResponses[i]);
-                  if (i < individualResponses.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                  }
-                }
+                await sendInstagramResponses(senderId, individualResponses);
+                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
               } else {
                 await metaService.sendInstagramMessage(senderId, "Disculpá, no logré escuchar bien tu audio. ¿Me lo podrías escribir en texto?");
               }

@@ -14,13 +14,15 @@ export function normalizeArgentinianSandboxNumber(phone: string): string {
   const digitsOnly = phone.replace(/\D/g, "");
   const normalized = digitsOnly.startsWith("00") ? digitsOnly.substring(2) : digitsOnly;
 
-  // WhatsApp Cloud suele requerir el celular argentino sin el 9
-  // cuando viene en formato 54 9 XX XXXX XXXX.
   if (normalized.startsWith("549") && normalized.length >= 13) {
     return `54${normalized.substring(3)}`;
   }
 
   return normalized;
+}
+
+async function delay(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class MetaService {
@@ -29,28 +31,52 @@ export class MetaService {
     const url = `https://graph.facebook.com/${API_VERSION}/${phoneId}/messages`;
     const formattedTo = normalizeArgentinianSandboxNumber(to);
 
-    try {
-      await axios.post(
-        url,
-        {
-          messaging_product: "whatsapp",
+    let lastError: any;
+
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const response = await axios.post(
+          url,
+          {
+            messaging_product: "whatsapp",
+            to: formattedTo,
+            type: "text",
+            text: { body: sanitizeOutboundText(message) },
+          },
+          {
+            headers: { Authorization: `Bearer ${META_ACCESS_TOKEN}` },
+          },
+        );
+
+        console.log("WhatsApp message sent:", {
           to: formattedTo,
-          type: "text",
-          text: { body: sanitizeOutboundText(message) },
-        },
-        {
-          headers: { Authorization: `Bearer ${META_ACCESS_TOKEN}` },
-        },
-      );
-    } catch (error: any) {
-      console.error("Error sending WhatsApp message:", error.response?.data || error.message);
+          attempt,
+          messageId: response.data?.messages?.[0]?.id || null,
+        });
+
+        return response.data;
+      } catch (error: any) {
+        lastError = error;
+        console.error("Error sending WhatsApp message:", {
+          to: formattedTo,
+          attempt,
+          error: error.response?.data || error.message,
+        });
+
+        if (attempt < 2) {
+          await delay(800);
+        }
+      }
     }
+
+    throw lastError;
   }
 
   async sendInstagramMessage(recipientId: string, message: string) {
     const url = `https://graph.facebook.com/${API_VERSION}/me/messages`;
+
     try {
-      await axios.post(
+      const response = await axios.post(
         url,
         {
           recipient: { id: recipientId },
@@ -60,8 +86,11 @@ export class MetaService {
           headers: { Authorization: `Bearer ${META_ACCESS_TOKEN}` },
         },
       );
+
+      return response.data;
     } catch (error: any) {
       console.error("Error sending Instagram message:", error.response?.data || error.message);
+      throw error;
     }
   }
 
