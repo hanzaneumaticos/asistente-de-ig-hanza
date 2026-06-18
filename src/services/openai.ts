@@ -18,6 +18,22 @@ const openai = new OpenAI({
 const PRIMARY_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || "gpt-5.5";
 const SECONDARY_TEXT_MODEL = process.env.OPENAI_SECONDARY_MODEL || PRIMARY_TEXT_MODEL;
 const VISION_MODEL = process.env.OPENAI_VISION_MODEL || "gpt-4o-mini";
+const TEXT_MODEL_FALLBACKS = [
+  PRIMARY_TEXT_MODEL,
+  "gpt-5",
+  "gpt-5-mini",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4o-mini",
+];
+const SECONDARY_MODEL_FALLBACKS = [
+  SECONDARY_TEXT_MODEL,
+  PRIMARY_TEXT_MODEL,
+  "gpt-5-mini",
+  "gpt-4.1-mini",
+  "gpt-4o-mini",
+];
+const VISION_MODEL_FALLBACKS = [VISION_MODEL, "gpt-4o-mini", "gpt-4.1-mini"];
 
 type ConversationContext = {
   vehicleInfo?: string;
@@ -109,6 +125,44 @@ function cleanAssistantText(text: string): string {
 
 function normalizeSearchString(value?: string | null): string {
   return (value || "").replace(/\s+/g, " ").trim();
+}
+
+function uniqueModels(models: string[]): string[] {
+  return Array.from(new Set(models.map((model) => model.trim()).filter(Boolean)));
+}
+
+function isRetryableModelError(error: any): boolean {
+  const message = String(error?.response?.data?.error?.message || error?.message || "").toLowerCase();
+  return (
+    message.includes("model") ||
+    message.includes("not found") ||
+    message.includes("does not exist") ||
+    message.includes("access") ||
+    message.includes("permission") ||
+    message.includes("unsupported")
+  );
+}
+
+async function createChatCompletionWithFallback(params: any, modelCandidates: string[]) {
+  const models = uniqueModels(modelCandidates);
+  let lastError: any;
+
+  for (const model of models) {
+    try {
+      return await openai.chat.completions.create({
+        ...params,
+        model,
+      });
+    } catch (error) {
+      lastError = error;
+      console.error(`OpenAI model failed (${model}):`, error);
+      if (!isRetryableModelError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 function formatSize(width: number, aspect: number | string, rim: number): string {
@@ -319,6 +373,46 @@ function scoreCatalogItem(item: any, query: string, userMessage: string, compati
   return score;
 }
 
+function hasStrongConsultationSignal(userMessage: string, detectedVehicle: string | null, detectedRim: number | null, parsedSize: ReturnType<typeof parseTireSize>): boolean {
+  const normalized = normalizeSearchString(userMessage).toLowerCase();
+  const genericFollowUps = [
+    "hola",
+    "buenas",
+    "estas ahi",
+    "estás ahi",
+    "estas ahi?",
+    "estás ahí",
+    "estás ahí?",
+    "dale",
+    "gracias",
+    "ok",
+    "oka",
+    "bueno",
+    "si",
+    "sí",
+    "aja",
+    "ajá",
+  ];
+
+  if (genericFollowUps.includes(normalized)) {
+    return false;
+  }
+
+  if (parsedSize) {
+    return true;
+  }
+
+  if (detectedVehicle) {
+    return true;
+  }
+
+  if (detectedRim && /\b(rodado|llanta|r\d{2}|\d{2})\b/i.test(userMessage)) {
+    return true;
+  }
+
+  return /\b(cubierta|cubiertas|neumatico|neumaticos|medida|rodado|llanta|sw4|hilux|amarok|ranger|corolla|cla)\b/i.test(userMessage);
+}
+
 async function executeSearchTool(
   args: { query?: string; vehicle?: string; rim?: number },
   userMessage: string,
@@ -344,7 +438,7 @@ async function executeSearchTool(
     }
   }
 
-  if (escalate && conversationId && detectedVehicle) {
+  if (escalate && conversationId && detectedVehicle && hasStrongConsultationSignal(userMessage, detectedVehicle, detectedRim, parsedSize)) {
     await dbService.createPendingConsultation(conversationId, detectedVehicle, detectedRim, userMessage);
     await dbService.updateConversationDetails(conversationId, {
       bot_enabled: false,
@@ -462,11 +556,10 @@ export class OpenAIService {
     }
 
     try {
-      const firstPass = await openai.chat.completions.create({
-        model: PRIMARY_TEXT_MODEL,
+      const firstPass = await createChatCompletionWithFallback({
         messages,
         tools: getToolDefinitions(),
-      });
+      }, TEXT_MODEL_FALLBACKS);
 
       const firstMessage = firstPass.choices[0].message;
 
@@ -511,10 +604,9 @@ export class OpenAIService {
           }
         }
 
-        const secondPass = await openai.chat.completions.create({
-          model: PRIMARY_TEXT_MODEL,
+        const secondPass = await createChatCompletionWithFallback({
           messages,
-        });
+        }, TEXT_MODEL_FALLBACKS);
 
         return cleanAssistantText(secondPass.choices[0].message.content || "Perdon, me repetis?");
       }
@@ -533,8 +625,7 @@ export class OpenAIService {
   async analyzeTireImage(imageBuffer: Buffer): Promise<string> {
     try {
       const base64Image = imageBuffer.toString("base64");
-      const response = await openai.chat.completions.create({
-        model: VISION_MODEL,
+      const response = await createChatCompletionWithFallback({
         messages: [
           {
             role: "user",
@@ -553,7 +644,7 @@ export class OpenAIService {
           },
         ],
         max_tokens: 20,
-      });
+      }, VISION_MODEL_FALLBACKS);
 
       return cleanAssistantText(response.choices[0].message.content || "NO_DETECTADO") || "NO_DETECTADO";
     } catch (error) {
@@ -570,8 +661,7 @@ export class OpenAIService {
 
       const formattedHistory = history.map((item) => `${item.role === "user" ? "Cliente" : "Hancita"}: ${item.content}`).join("\n");
 
-      const response = await openai.chat.completions.create({
-        model: SECONDARY_TEXT_MODEL,
+      const response = await createChatCompletionWithFallback({
         messages: [
           {
             role: "system",
@@ -587,7 +677,7 @@ export class OpenAIService {
           },
         ],
         response_format: { type: "json_object" },
-      });
+      }, SECONDARY_MODEL_FALLBACKS);
 
       const parsed = JSON.parse(response.choices[0].message.content || "{}");
       return {
@@ -606,8 +696,7 @@ export class OpenAIService {
     rim: string,
   ): Promise<{ extracted_tire_sizes?: string[]; extracted_tire_size?: string | null; client_response: string }> {
     try {
-      const response = await openai.chat.completions.create({
-        model: SECONDARY_TEXT_MODEL,
+      const response = await createChatCompletionWithFallback({
         messages: [
           {
             role: "system",
@@ -631,7 +720,7 @@ Formato:
           },
         ],
         response_format: { type: "json_object" },
-      });
+      }, SECONDARY_MODEL_FALLBACKS);
 
       const parsed = JSON.parse(response.choices[0].message.content || "{}");
       return {

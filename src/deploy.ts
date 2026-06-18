@@ -28,6 +28,9 @@ async function deploy() {
     // 2. Preparar variables de entorno desde el .env local
     const envVars = [
       { key: "OPENAI_API_KEY", value: process.env.OPENAI_API_KEY || "" },
+      { key: "OPENAI_TEXT_MODEL", value: process.env.OPENAI_TEXT_MODEL || "gpt-5.5" },
+      { key: "OPENAI_SECONDARY_MODEL", value: process.env.OPENAI_SECONDARY_MODEL || "gpt-5-mini" },
+      { key: "OPENAI_VISION_MODEL", value: process.env.OPENAI_VISION_MODEL || "gpt-4o-mini" },
       { key: "META_ACCESS_TOKEN", value: process.env.META_ACCESS_TOKEN || "" },
       { key: "META_VERIFY_TOKEN", value: process.env.META_VERIFY_TOKEN || "smart_hanza_verify_token" },
       { key: "WHATSAPP_PHONE_NUMBER_ID", value: process.env.WHATSAPP_PHONE_NUMBER_ID || "1134838283046364" },
