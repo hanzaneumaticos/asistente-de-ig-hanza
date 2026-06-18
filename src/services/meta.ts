@@ -10,11 +10,16 @@ function sanitizeOutboundText(message: string): string {
   return message.replace(/[¿¡]/g, "");
 }
 
-function normalizeArgentinianSandboxNumber(phone: string): string {
-  const normalized = phone.trim();
-  if (normalized.startsWith("549") && normalized.length === 13) {
+export function normalizeArgentinianSandboxNumber(phone: string): string {
+  const digitsOnly = phone.replace(/\D/g, "");
+  const normalized = digitsOnly.startsWith("00") ? digitsOnly.substring(2) : digitsOnly;
+
+  // WhatsApp Cloud suele requerir el celular argentino sin el 9
+  // cuando viene en formato 54 9 XX XXXX XXXX.
+  if (normalized.startsWith("549") && normalized.length >= 13) {
     return `54${normalized.substring(3)}`;
   }
+
   return normalized;
 }
 

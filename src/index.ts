@@ -5,7 +5,7 @@ import cors from "cors";
 import path from "path";
 import * as dotenv from "dotenv";
 import { aiService } from "./services/openai";
-import { metaService } from "./services/meta";
+import { metaService, normalizeArgentinianSandboxNumber } from "./services/meta";
 import { dbService, isSupabaseConfigured, supabase } from "./services/supabase";
 import catalog from "../catalog.json";
 import { saveLearnedCompatibility, parseTireSize } from "./services/tireCompatibility";
@@ -844,10 +844,7 @@ app.get("/api/test-send", async (req, res) => {
   const token = process.env.META_ACCESS_TOKEN?.trim() || "";
   const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
 
-  let formattedTo = to.trim();
-  if (formattedTo.startsWith("549") && formattedTo.length === 13) {
-    formattedTo = "54" + formattedTo.substring(3);
-  }
+  const formattedTo = normalizeArgentinianSandboxNumber(to);
 
   try {
     const response = await axios.post(
