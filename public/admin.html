@@ -3,274 +3,322 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hanza - Back Office de Administración</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Hanza | Panel de conversaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-main: #090d16;
-            --bg-card: #131926;
-            --bg-card-hover: #1c2538;
-            --primary: #2563eb;
-            --primary-glow: rgba(37, 99, 235, 0.4);
-            --emerald: #10b981;
-            --rose: #f43f5e;
-            --amber: #f59e0b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg: #0a1018;
+            --panel: #111926;
+            --panel-soft: #172233;
+            --panel-strong: #1d2a3f;
+            --text: #eef4ff;
+            --muted: #9fb0c8;
             --border: rgba(255, 255, 255, 0.08);
+            --brand: #4f8cff;
+            --emerald: #22c55e;
+            --amber: #f59e0b;
+            --rose: #fb7185;
+            --orange: #f97316;
+            --shadow: 0 22px 50px rgba(0, 0, 0, 0.28);
         }
 
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            height: 100vh;
-            overflow: hidden;
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Outfit", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(79, 140, 255, 0.16), transparent 26%),
+                radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.1), transparent 28%),
+                var(--bg);
+            color: var(--text);
+        }
+
+        .shell {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        /* --- Header --- */
-        .navbar {
-            height: 70px;
-            background: rgba(19, 25, 38, 0.7);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
+        .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 30px;
+            gap: 18px;
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 16, 24, 0.82);
+            backdrop-filter: blur(14px);
+            position: sticky;
+            top: 0;
             z-index: 10;
         }
 
         .brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
         }
 
-        .brand-logo {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .brand-mark {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #4f8cff, #2f5dd7);
+            display: grid;
+            place-items: center;
+            font-size: 20px;
             font-weight: 700;
-            font-size: 20px;
-            box-shadow: 0 0 15px var(--primary-glow);
+            box-shadow: 0 12px 28px rgba(79, 140, 255, 0.35);
         }
 
-        .brand-name {
+        .brand h1 {
+            margin: 0;
             font-size: 20px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            line-height: 1;
         }
 
-        .global-status {
+        .brand p {
+            margin: 4px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .topbar-right {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
-        .status-badge {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--emerald);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            padding: 6px 14px;
-            border-radius: 50px;
-            font-size: 13px;
-            font-weight: 500;
-            display: flex;
+        .status-pill,
+        .refresh-pill {
+            display: inline-flex;
             align-items: center;
             gap: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            font-weight: 600;
         }
 
         .status-dot {
             width: 8px;
             height: 8px;
-            background-color: var(--emerald);
             border-radius: 50%;
-            animation: pulse 2s infinite;
+            background: var(--emerald);
+            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12);
         }
 
-        @keyframes pulse {
-            0% { transform: scale(0.9); opacity: 0.6; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.9); opacity: 0.6; }
+        .refresh-pill button {
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font: inherit;
+            cursor: pointer;
         }
 
-        /* --- Main Content Layout --- */
-        .app-container {
+        .layout {
             flex: 1;
-            display: flex;
-            overflow: hidden;
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr) 380px;
+            min-height: 0;
         }
 
-        /* --- Panel 1: Chat List --- */
+        .sidebar,
+        .conversation,
+        .details {
+            min-height: 0;
+        }
+
+        .sidebar,
+        .details {
+            background: rgba(17, 25, 38, 0.86);
+        }
+
         .sidebar {
-            width: 380px;
             border-right: 1px solid var(--border);
-            background: #0d121f;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
         }
 
-        .panel-header {
-            padding: 20px;
+        .details {
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .panel-head {
+            padding: 18px;
             border-bottom: 1px solid var(--border);
         }
 
-        .panel-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .panel-head h2,
+        .section-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
         }
 
-        .panel-badge {
-            background: var(--primary);
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 50px;
+        .panel-head p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 12px;
         }
 
-        .search-box {
-            position: relative;
+        .search-wrap {
+            margin-top: 14px;
         }
 
-        .search-box input {
+        .search-wrap input,
+        .input-bar input,
+        textarea,
+        .mini-input {
             width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 10px 15px;
-            border-radius: 10px;
-            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            border-radius: 14px;
+            padding: 12px 14px;
+            font: inherit;
             outline: none;
-            font-family: inherit;
-            font-size: 13px;
-            transition: 0.3s;
         }
 
-        .search-box input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+        .search-wrap input:focus,
+        .input-bar input:focus,
+        textarea:focus,
+        .mini-input:focus {
+            border-color: rgba(79, 140, 255, 0.45);
+            box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.12);
+        }
+
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .kpi {
+            background: var(--panel-soft);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+        }
+
+        .kpi strong {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .kpi span {
+            color: var(--muted);
+            font-size: 11px;
         }
 
         .chat-list {
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
 
         .chat-item {
-            background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 18px;
+            padding: 14px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
+            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
         }
 
         .chat-item:hover {
-            background: var(--bg-card-hover);
-            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-1px);
+            border-color: rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .chat-item.active {
-            background: rgba(37, 99, 235, 0.08);
-            border-color: var(--primary);
-            box-shadow: 0 0 10px rgba(37, 99, 235, 0.1);
+            border-color: rgba(79, 140, 255, 0.45);
+            background: rgba(79, 140, 255, 0.1);
         }
 
-        .chat-info {
+        .chat-row {
             display: flex;
             justify-content: space-between;
+            gap: 10px;
             align-items: flex-start;
-            margin-bottom: 8px;
         }
 
         .chat-name {
-            font-weight: 600;
             font-size: 14px;
+            font-weight: 600;
         }
 
         .chat-time {
+            color: var(--muted);
             font-size: 11px;
-            color: var(--text-muted);
+            white-space: nowrap;
         }
 
         .chat-preview {
+            color: var(--muted);
             font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            line-height: 1.45;
+            margin: 10px 0 12px;
         }
 
         .chat-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 10px;
         }
 
         .lead-tag {
             font-size: 10px;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 50px;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 4px 8px;
             text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
-        .tag-hot { background: rgba(244, 63, 94, 0.1); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.2); }
-        .tag-warm { background: rgba(245, 158, 11, 0.1); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.2); }
-        .tag-cold { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.2); }
-        .tag-deriv { background: rgba(37, 99, 235, 0.1); color: var(--primary); border: 1px solid rgba(37, 99, 235, 0.2); }
-        .tag-consult { 
-            background: rgba(249, 115, 22, 0.15); 
-            color: #f97316; 
-            border: 1px solid rgba(249, 115, 22, 0.4); 
-            animation: pulse-orange 1.5s infinite; 
-        }
-        @keyframes pulse-orange {
-            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
-            70% { box-shadow: 0 0 0 6px rgba(249, 115, 22, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
-        }
+        .tag-hot { background: rgba(251, 113, 133, 0.12); color: var(--rose); border: 1px solid rgba(251, 113, 133, 0.2); }
+        .tag-warm { background: rgba(245, 158, 11, 0.12); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .tag-cold { background: rgba(159, 176, 200, 0.1); color: var(--muted); border: 1px solid rgba(159, 176, 200, 0.16); }
+        .tag-deriv { background: rgba(79, 140, 255, 0.12); color: var(--brand); border: 1px solid rgba(79, 140, 255, 0.2); }
+        .tag-consult { background: rgba(249, 115, 22, 0.15); color: var(--orange); border: 1px solid rgba(249, 115, 22, 0.28); }
 
-        /* --- Toggle Switch --- */
         .bot-toggle-container {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
         }
 
         .switch-label {
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
         }
 
         .switch {
             position: relative;
             display: inline-block;
-            width: 36px;
-            height: 20px;
+            width: 38px;
+            height: 22px;
         }
 
         .switch input {
@@ -281,776 +329,713 @@
 
         .slider {
             position: absolute;
+            inset: 0;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #334155;
-            transition: .3s;
-            border-radius: 50px;
+            background: #34465f;
+            border-radius: 999px;
+            transition: 0.2s;
         }
 
-        .slider:before {
-            position: absolute;
+        .slider::before {
             content: "";
-            height: 14px;
-            width: 14px;
+            position: absolute;
+            width: 16px;
+            height: 16px;
             left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .3s;
+            top: 3px;
             border-radius: 50%;
+            background: white;
+            transition: 0.2s;
         }
 
-        input:checked + .slider {
-            background-color: var(--emerald);
+        .switch input:checked + .slider {
+            background: var(--emerald);
         }
 
-        input:checked + .slider:before {
+        .switch input:checked + .slider::before {
             transform: translateX(16px);
         }
 
-        /* --- Panel 2: Live Chat & History --- */
-        .chat-content {
-            flex: 1;
+        .conversation {
             display: flex;
             flex-direction: column;
-            background: #090d16;
-            border-right: 1px solid var(--border);
+            min-width: 0;
+            background: linear-gradient(180deg, rgba(23, 34, 51, 0.66), rgba(10, 16, 24, 0.96));
         }
 
         .chat-header {
-            height: 70px;
+            padding: 18px 20px;
             border-bottom: 1px solid var(--border);
-            padding: 0 25px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            background: #0d121f;
-        }
-
-        .chat-title-info {
-            display: flex;
-            flex-direction: column;
+            gap: 12px;
+            align-items: center;
         }
 
         .chat-header-name {
-            font-weight: 600;
-            font-size: 15px;
+            font-size: 18px;
+            font-weight: 700;
         }
 
         .chat-header-vehicle {
+            color: var(--muted);
             font-size: 12px;
-            color: var(--text-muted);
+            margin-top: 6px;
         }
 
         .chat-actions {
             display: flex;
-            align-items: center;
-            gap: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
-        .action-btn {
-            background: var(--primary);
-            border: none;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 500;
+        .action-btn,
+        .primary-btn,
+        .ghost-btn {
+            border: 1px solid transparent;
+            border-radius: 14px;
+            padding: 10px 14px;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
-            transition: 0.2s;
-            font-family: inherit;
+        }
+
+        .primary-btn,
+        .action-btn {
+            background: linear-gradient(135deg, #4f8cff, #2f5dd7);
+            color: white;
         }
 
         .action-btn.takeover {
-            background: rgba(244, 63, 94, 0.15);
+            background: rgba(251, 113, 133, 0.12);
             color: var(--rose);
-            border: 1px solid rgba(244, 63, 94, 0.3);
+            border-color: rgba(251, 113, 133, 0.2);
         }
 
         .action-btn.takeover.active {
-            background: var(--rose);
+            background: linear-gradient(135deg, #fb7185, #e11d48);
             color: white;
+            border-color: transparent;
+        }
+
+        .ghost-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--border);
+            color: var(--text);
         }
 
         .messages-container {
             flex: 1;
-            padding: 25px;
+            min-height: 0;
             overflow-y: auto;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 14px;
+        }
+
+        .empty-state {
+            margin: auto;
+            max-width: 420px;
+            text-align: center;
+            color: var(--muted);
+            line-height: 1.55;
         }
 
         .msg-bubble {
-            max-width: 70%;
-            padding: 14px 18px;
-            border-radius: 16px;
-            font-size: 13.5px;
+            max-width: min(78%, 620px);
+            padding: 14px 16px;
+            border-radius: 18px;
             line-height: 1.5;
+            white-space: pre-wrap;
+            animation: rise 0.18s ease;
         }
 
         .msg-user {
             align-self: flex-end;
-            background: var(--primary);
+            background: linear-gradient(135deg, #4f8cff, #2960eb);
             color: white;
-            border-bottom-right-radius: 2px;
+            border-bottom-right-radius: 4px;
         }
 
         .msg-bot {
             align-self: flex-start;
-            background: var(--bg-card);
-            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border);
-            border-bottom-left-radius: 2px;
+            color: var(--text);
+            border-bottom-left-radius: 4px;
         }
 
         .msg-info {
+            margin-top: 8px;
+            color: rgba(255, 255, 255, 0.62);
             font-size: 10px;
-            color: var(--text-muted);
-            margin-top: 5px;
             text-align: right;
         }
 
         .input-bar {
-            padding: 20px;
+            padding: 16px 20px 20px;
             border-top: 1px solid var(--border);
-            background: #0d121f;
-            display: flex;
-            gap: 15px;
-        }
-
-        .input-bar input {
-            flex: 1;
-            background: var(--bg-main);
-            border: 1px solid var(--border);
-            padding: 14px;
-            border-radius: 12px;
-            color: white;
-            outline: none;
-            font-family: inherit;
-            font-size: 13.5px;
-        }
-
-        .input-bar button {
-            background: var(--primary);
-            border: none;
-            color: white;
-            padding: 0 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            transition: 0.2s;
-        }
-
-        /* --- Panel 3: Knowledge Base & Stock --- */
-        .control-panel {
-            width: 420px;
-            background: #0d121f;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-        }
-
-        .section-box {
-            padding: 25px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .section-title {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
+            display: grid;
             gap: 10px;
         }
 
-        .rules-area {
-            width: 100%;
-            height: 150px;
-            background: var(--bg-card);
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-help {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .section-box {
+            padding: 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-subtitle {
+            color: var(--muted);
+            font-size: 12px;
+            margin: 6px 0 0;
+            line-height: 1.45;
+        }
+
+        .detail-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .detail-card {
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            color: white;
-            font-family: inherit;
+        }
+
+        .detail-card strong {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+
+        .detail-card span {
+            line-height: 1.45;
             font-size: 13px;
-            resize: none;
-            outline: none;
-            margin-bottom: 15px;
+        }
+
+        .summary-box,
+        .consult-box,
+        .rules-box {
+            margin-top: 14px;
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+        }
+
+        .summary-box p,
+        .consult-box p,
+        .rules-box p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
             line-height: 1.5;
         }
 
-        .rules-area:focus {
-            border-color: var(--primary);
-        }
-
-        .save-btn {
-            background: var(--primary);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            width: 100%;
-            transition: 0.2s;
-        }
-
-        .save-btn:hover {
-            opacity: 0.9;
+        textarea {
+            min-height: 92px;
+            resize: vertical;
+            margin-top: 10px;
         }
 
         .rules-list {
-            margin-top: 15px;
+            margin-top: 12px;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 150px;
-            overflow-y: auto;
         }
 
         .rule-item {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: var(--text-muted);
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--muted);
         }
 
         .delete-rule {
             color: var(--rose);
             cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
+            font-weight: 700;
         }
 
-        /* --- Drag & Drop Zone --- */
-        .upload-zone {
-            border: 2px dashed rgba(255,255,255,0.15);
-            border-radius: 12px;
-            padding: 30px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.3s;
-            background: var(--bg-card);
-        }
-
-        .upload-zone:hover {
-            border-color: var(--primary);
-            background: rgba(37, 99, 235, 0.04);
-        }
-
-        .upload-icon {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .upload-text {
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .upload-subtext {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        /* --- Accordion Styles --- */
-        .accordion-item {
-            border-bottom: 1px solid var(--border);
-        }
-
-        .accordion-header {
-            padding: 15px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            font-size: 13.5px;
-            font-weight: 600;
-            transition: background 0.2s;
-            user-select: none;
-            background: rgba(19, 25, 38, 0.2);
-        }
-
-        .accordion-header:hover {
-            background: var(--bg-card-hover);
-        }
-
-        .accordion-arrow {
-            font-size: 10px;
-            color: var(--text-muted);
-            transition: transform 0.3s;
-        }
-
-        .accordion-content {
-            padding: 0 25px 20px 25px;
-            background: #0d121f;
-        }
-        
-        /* Spinner Loader for AI summary */
         .spinner {
             width: 16px;
             height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-top-color: var(--brand);
             border-radius: 50%;
-            border-top-color: var(--primary);
             animation: spin 0.8s linear infinite;
             display: inline-block;
-            margin-right: 8px;
             vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        .consult-box {
+            border-color: rgba(249, 115, 22, 0.24);
+            background: rgba(249, 115, 22, 0.08);
+        }
+
+        .consult-title {
+            color: var(--orange);
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 0.08em;
+        }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        @media (max-width: 1300px) {
+            .layout {
+                grid-template-columns: 320px minmax(0, 1fr) 340px;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar,
+            .conversation,
+            .details {
+                border: none;
+            }
+
+            .sidebar {
+                max-height: 42vh;
+            }
+
+            .details {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .topbar {
+                padding: 14px;
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .topbar-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .panel-head,
+            .section-box,
+            .chat-header,
+            .messages-container,
+            .input-bar {
+                padding-left: 14px;
+                padding-right: 14px;
+            }
+
+            .kpis {
+                grid-template-columns: 1fr;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            .msg-bubble {
+                max-width: 92%;
+            }
+        }
     </style>
 </head>
 <body>
-
-    <!-- --- Navbar --- -->
-    <div class="navbar">
-        <div class="brand">
-            <div class="brand-logo">H</div>
-            <div class="brand-name">Hanza Neumáticos</div>
-        </div>
-        <div class="global-status">
-            <div class="status-badge">
-                <div class="status-dot"></div>
-                Hancita Online (Activa)
-            </div>
-        </div>
-    </div>
-
-    <!-- --- App Layout --- -->
-    <div class="app-container">
-
-        <!-- --- Panel 1: Chats List --- -->
-        <div class="sidebar">
-            <div class="panel-header">
-                <div class="panel-title">
-                    Chats Recientes
-                    <span class="panel-badge" id="chats-count">3 Chats</span>
-                </div>
-                <div class="search-box">
-                    <input type="text" placeholder="Buscar por número o nombre...">
+    <div class="shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark">H</div>
+                <div>
+                    <h1>Hanza Neumaticos</h1>
+                    <p>Panel de conversaciones, control manual y resumen comercial</p>
                 </div>
             </div>
-            <div class="chat-list" id="chat-list-container">
-                <!-- Chat 1 -->
-                <div class="chat-item active" onclick="selectChat(0)">
-                    <div class="chat-info">
-                        <div class="chat-name">Karim (SW4)</div>
-                        <div class="chat-time">Hace 1 min</div>
+
+            <div class="topbar-right">
+                <div class="status-pill">
+                    <span class="status-dot"></span>
+                    Hancita online
+                </div>
+                <div class="refresh-pill">
+                    <button onclick="fetchConversations()">Actualizar ahora</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="layout">
+            <aside class="sidebar">
+                <div class="panel-head">
+                    <h2>Chats activos</h2>
+                    <p>Ordenados por ultimo movimiento para entrar rapido a cada oportunidad.</p>
+
+                    <div class="search-wrap">
+                        <input type="text" id="chat-search" placeholder="Buscar por nombre, numero, vehiculo o medida...">
                     </div>
-                    <div class="chat-preview" id="preview-0">¿Tenés disponible en Michelin Primacy SUV?</div>
-                    <div class="chat-footer">
-                        <span class="lead-tag tag-hot" id="tag-0">Caliente</span>
-                        <div class="bot-toggle-container">
-                            <span class="switch-label" id="toggle-label-0" style="color: var(--emerald);">Bot ON</span>
-                            <label class="switch">
-                                <input type="checkbox" checked id="bot-chk-0" onchange="toggleBot(0, event)">
-                                <span class="slider"></span>
-                            </label>
+
+                    <div class="kpis">
+                        <div class="kpi">
+                            <strong id="kpi-total">0</strong>
+                            <span>Total</span>
+                        </div>
+                        <div class="kpi">
+                            <strong id="kpi-hot">0</strong>
+                            <span>Calientes</span>
+                        </div>
+                        <div class="kpi">
+                            <strong id="kpi-consult">0</strong>
+                            <span>Consulta</span>
                         </div>
                     </div>
                 </div>
-                <!-- Chat 2 -->
-                <div class="chat-item" onclick="selectChat(1)">
-                    <div class="chat-info">
-                        <div class="chat-name">Mariela (Amarok)</div>
-                        <div class="chat-time">Hace 12 min</div>
-                    </div>
-                    <div class="chat-preview" id="preview-1">Te confirmo que la medida que tengo es 255/60/18</div>
-                    <div class="chat-footer">
-                        <span class="lead-tag tag-warm" id="tag-1">Tibio</span>
-                        <div class="bot-toggle-container">
-                            <span class="switch-label" id="toggle-label-1" style="color: var(--emerald);">Bot ON</span>
-                            <label class="switch">
-                                <input type="checkbox" checked id="bot-chk-1" onchange="toggleBot(1, event)">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <!-- Chat 3 -->
-                <div class="chat-item" onclick="selectChat(2)">
-                    <div class="chat-info">
-                        <div class="chat-name">Gonzalo Fletera</div>
-                        <div class="chat-time">Hace 1 hora</div>
-                    </div>
-                    <div class="chat-preview" id="preview-2">Hola, llamame cuando puedas por las 12 cubiertas</div>
-                    <div class="chat-footer">
-                        <span class="lead-tag tag-deriv" id="tag-2">Derivado</span>
-                        <div class="bot-toggle-container">
-                            <span class="switch-label" id="toggle-label-2" style="color: var(--rose);">Manual</span>
-                            <label class="switch">
-                                <input type="checkbox" id="bot-chk-2" onchange="toggleBot(2, event)">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- --- Panel 2: Live Chat Content --- -->
-        <div class="chat-content">
-            <div class="chat-header">
-                <div class="chat-title-info">
-                    <div class="chat-header-name" id="current-chat-name">Karim (SW4)</div>
-                    <div class="chat-header-vehicle" id="current-chat-details">Toyota SW4 | Busca: 265/65/17 | Scoring: 85%</div>
-                </div>
-                <div class="chat-actions">
-                    <button class="action-btn takeover" id="takeover-btn" onclick="manualTakeover()">Tomar Control Manual</button>
-                </div>
-            </div>
-            <!-- Banner de Consulta de Compatibilidad (Eliminado de aquí) -->
-            <div id="consultation-banner" style="display: none;"></div>
+                <div class="chat-list" id="chat-list-container"></div>
+            </aside>
 
-            <div class="messages-container" id="messages-window">
-                <!-- Messages load dynamically -->
-            </div>
-
-            <div class="input-bar">
-                <input type="text" id="manual-input" placeholder="Escribe un mensaje manual a este cliente (esto silenciará al bot para este chat)...">
-                <button onclick="sendManualMessage()">Enviar</button>
-            </div>
-        </div>
-
-        <!-- --- Panel 3: Control Panel & Details --- -->
-        <div class="control-panel">
-            
-            <!-- Collapsible Excel Manager -->
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion('excel-manager')">
-                    <span>📊 Carga de Catálogo y Stock (Excel)</span>
-                    <span class="accordion-arrow" id="arrow-excel-manager">▼</span>
-                </div>
-                <div class="accordion-content" id="excel-manager" style="display: none;">
-                    <div style="display: flex; flex-direction: column; gap: 12px; padding: 15px 0 0 0;">
-                        <div class="upload-zone" onclick="simulateUpload('Propio')">
-                            <div class="upload-icon">📂</div>
-                            <div class="upload-text">Subir Stock Propio</div>
-                            <div class="upload-subtext">Soporta formatos .xlsx y .xls</div>
-                        </div>
-                        <div class="upload-zone" onclick="simulateUpload('Fabrica')">
-                            <div class="upload-icon">🏭</div>
-                            <div class="upload-text">Subir Stock Fábrica</div>
-                            <div class="upload-subtext">Michelin / BF Goodrich (demora 2-3 días)</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Collapsible Manual Rules -->
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion('manual-rules')">
-                    <span>💡 Instrucciones Manuales para la IA</span>
-                    <span class="accordion-arrow" id="arrow-manual-rules">▼</span>
-                </div>
-                <div class="accordion-content" id="manual-rules" style="display: none;">
-                    <div style="padding: 15px 0 0 0;">
-                        <textarea class="rules-area" id="new-rule-text" placeholder="Escribe una instrucción para Hancita. Ejemplo:
-- Para camionetas SW4 sugerir 265/65 R17 o 265/70 R17.
-- Los envíos son gratis a todo el país.
-- No vender otras marcas que no sean Michelin o BF Goodrich." style="margin-bottom: 10px; height: 100px;"></textarea>
-                        <button class="save-btn" onclick="addRule()">Guardar y Entrenar IA</button>
-
-                        <div class="rules-list" id="rules-container">
-                            <!-- Rule 1 -->
-                            <div class="rule-item">
-                                <span>• Envíos gratis a toda la Argentina (Logística propia o Vía Cargo)</span>
-                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
-                            </div>
-                            <!-- Rule 2 -->
-                            <div class="rule-item">
-                                <span>• Demora de 2-3 días si el producto solo está en fábrica</span>
-                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
-                            </div>
-                            <!-- Rule 3 -->
-                            <div class="rule-item">
-                                <span>• Evitar lunfardos y mantener voseo educado y cordial</span>
-                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Active Chat Details and Summary -->
-            <div class="section-box" style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
-                <div class="section-title" style="margin-bottom: 5px;">
-                    <span>👤 Ficha de Detalles del Cliente</span>
-                </div>
-                
-                <div class="client-details-grid" style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-                    <div><strong style="color: var(--text-muted);">Nombre completo:</strong> <span id="detail-name">-</span></div>
-                    <div><strong style="color: var(--text-muted);">Ubicación / Zona:</strong> <span id="detail-location">-</span></div>
-                    <div><strong style="color: var(--text-muted);">Vehículos:</strong> <span id="detail-vehicles">-</span></div>
-                    <div><strong style="color: var(--text-muted);">Medidas buscadas:</strong> <span id="detail-sizes">-</span></div>
-                </div>
-
-                <div style="border-top: 1px solid var(--border); padding-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+            <section class="conversation">
+                <div class="chat-header">
                     <div>
-                        <strong style="font-size: 13px; color: var(--text-main);">Resumen de Conversación:</strong>
-                        <div id="detail-summary-container" style="margin-top: 6px; font-size: 12.5px; color: var(--text-muted); line-height: 1.5; min-height: 24px;">
-                            <span id="detail-summary">Sin resumen generado todavía.</span>
+                        <div class="chat-header-name" id="current-chat-name">Selecciona un chat</div>
+                        <div class="chat-header-vehicle" id="current-chat-details">Todavia no hay una conversacion activa.</div>
+                    </div>
+
+                    <div class="chat-actions">
+                        <button class="action-btn takeover" id="takeover-btn" onclick="manualTakeover()">Tomar control manual</button>
+                    </div>
+                </div>
+
+                <div class="messages-container" id="messages-window">
+                    <div class="empty-state">Elegi un chat de la izquierda para ver el historial, responder manualmente o revisar el resumen comercial.</div>
+                </div>
+
+                <div class="input-bar">
+                    <div class="input-row">
+                        <input type="text" id="manual-input" placeholder="Escribe un mensaje manual para este cliente...">
+                        <button class="primary-btn" onclick="sendManualMessage()">Enviar</button>
+                    </div>
+                    <div class="input-help">Cuando envias manualmente, el bot queda silenciado en esa conversacion para que tomes el control.</div>
+                </div>
+            </section>
+
+            <aside class="details">
+                <div class="section-box">
+                    <div class="section-title">Ficha del cliente</div>
+                    <div class="section-subtitle">Vista rapida para entender quien es, que busca y en que estado esta la venta.</div>
+
+                    <div class="detail-list">
+                        <div class="detail-card">
+                            <strong>Nombre</strong>
+                            <span id="detail-name">-</span>
+                        </div>
+                        <div class="detail-card">
+                            <strong>Zona</strong>
+                            <span id="detail-location">-</span>
+                        </div>
+                        <div class="detail-card">
+                            <strong>Vehiculos</strong>
+                            <span id="detail-vehicles">-</span>
+                        </div>
+                        <div class="detail-card">
+                            <strong>Medidas buscadas</strong>
+                            <span id="detail-sizes">-</span>
                         </div>
                     </div>
-                    <div id="summary-action-block">
-                        <button id="generate-summary-btn" onclick="generateSummaryManually()" style="background: rgba(37, 99, 235, 0.12); color: #3b82f6; border: 1px solid rgba(37, 99, 235, 0.25); padding: 8px 12px; border-radius: 8px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: 0.2s; font-family: inherit; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            <span>✨ Generar Resumen con IA</span>
+
+                    <div class="summary-box">
+                        <div class="section-title" style="font-size: 14px;">Resumen de conversacion</div>
+                        <p id="detail-summary" style="margin-top: 8px;">Sin resumen generado todavia.</p>
+                        <button id="generate-summary-btn" class="ghost-btn" onclick="generateSummaryManually()" style="width: 100%; margin-top: 12px;">
+                            Generar resumen con IA
                         </button>
                     </div>
                 </div>
 
-                <!-- Consultation Block inside the details panel -->
-                <div id="sidebar-consultation-box" style="display: none; background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 12px; padding: 15px; margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
-                    <div style="font-weight: 600; color: #f97316; font-size: 13px; display: flex; align-items: center; gap: 6px;">
-                        ⚠️ CONSULTA PENDIENTE DE COMPATIBILIDAD
+                <div class="section-box">
+                    <div class="section-title">Reglas manuales para la IA</div>
+                    <div class="section-subtitle">Notas operativas rapidas para tu equipo. Quedan como ayuda visual dentro del panel.</div>
+
+                    <div class="rules-box">
+                        <p>Sirve para dejar recordatorios cortos: stock, politica comercial, tono o prioridades de venta.</p>
+                        <textarea class="rules-area" id="new-rule-text" placeholder="Ejemplo:
+- Priorizar BF Goodrich KO3 en camionetas.
+- Envio gratis a todo el pais.
+- No abrir mas de una pregunta por mensaje."></textarea>
+                        <button class="primary-btn" onclick="addRule()" style="width: 100%; margin-top: 10px;">Guardar nota</button>
+
+                        <div class="rules-list" id="rules-container">
+                            <div class="rule-item">
+                                <span>- Envio gratis a todo el pais.</span>
+                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                            </div>
+                            <div class="rule-item">
+                                <span>- Si no hay stock propio, avisar demora de 2 a 3 dias habiles.</span>
+                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                            </div>
+                            <div class="rule-item">
+                                <span>- Mantener tono directo, corto y vendedor.</span>
+                                <span class="delete-rule" onclick="deleteRule(this)">&times;</span>
+                            </div>
+                        </div>
                     </div>
-                    <div id="sidebar-consultation-query" style="font-size: 12.5px; color: var(--text-main); line-height: 1.4;">
-                        Cargando consulta...
-                    </div>
-                    <textarea id="resolve-natural-response" placeholder="Escribe la respuesta en lenguaje natural para el cliente... (ej: 'decile que lleva 255/60 r18 y tenemos michelin a 280 mil pesos')" style="width: 100%; height: 80px; background: var(--bg-main); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: white; font-family: inherit; font-size: 12.5px; outline: none; resize: none;"></textarea>
-                    <button onclick="resolveConsultation()" style="background: #f97316; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 12.5px; transition: 0.2s; font-family: inherit;">Responder y Enseñar a la IA</button>
                 </div>
-            </div>
-        </div>
+
+                <div class="section-box">
+                    <div class="section-title">Consulta pendiente de compatibilidad</div>
+                    <div class="section-subtitle">Cuando Hancita no tiene una compatibilidad cargada, te la deja lista para responder y aprender.</div>
+
+                    <div id="sidebar-consultation-box" class="consult-box" style="display: none;">
+                        <div class="consult-title">CONSULTA PENDIENTE</div>
+                        <p id="sidebar-consultation-query">Cargando consulta...</p>
+                        <textarea id="resolve-natural-response" placeholder="Ejemplo: decile que lleva 255/60 R18 y que tenemos Michelin a 280000 contado."></textarea>
+                        <button class="primary-btn" onclick="resolveConsultation()" style="width: 100%; margin-top: 10px;">Responder y ensenar a la IA</button>
+                    </div>
+
+                    <div id="consult-empty" class="rules-box">
+                        <p>No hay consultas pendientes ahora. Cuando falte una compatibilidad, va a aparecer aca automaticamente.</p>
+                    </div>
+                </div>
+            </aside>
+        </main>
     </div>
 
-    <!-- --- JS Interactivo --- -->
     <script>
         let conversations = [];
         let activeConversationId = null;
         let activeChatIndex = 0;
 
-        // Auto-refresh interval (every 4 seconds)
         setInterval(fetchConversationsSilently, 4000);
-        // Refresh messages of active chat (every 3 seconds)
         setInterval(fetchActiveMessagesSilently, 3000);
+
+        document.getElementById("chat-search").addEventListener("input", renderChatList);
+        document.getElementById("manual-input").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                sendManualMessage();
+            }
+        });
 
         async function fetchConversations() {
             try {
-                const res = await fetch("/api/conversations");
-                const data = await res.json();
-                conversations = data;
-                
-                // Actualizar contador
-                document.getElementById("chats-count").innerText = `${conversations.length} Chats`;
-                
+                const response = await fetch("/api/conversations");
+                conversations = await response.json();
+                updateKpis();
                 renderChatList();
-                
-                // Seleccionar primer chat si no hay ninguno seleccionado
+
                 if (conversations.length > 0 && !activeConversationId) {
                     selectChat(0);
-                } else if (activeConversationId) {
-                    const currentIdx = conversations.findIndex(c => c.id === activeConversationId);
-                    if (currentIdx !== -1) {
-                        activeChatIndex = currentIdx;
+                    return;
+                }
+
+                if (activeConversationId) {
+                    const currentIndex = conversations.findIndex((chat) => chat.id === activeConversationId);
+                    if (currentIndex !== -1) {
+                        activeChatIndex = currentIndex;
                         renderActiveChatDetails();
                     }
                 }
-            } catch (err) {
-                console.error("Error fetching conversations:", err);
+            } catch (error) {
+                console.error("Error fetching conversations:", error);
             }
         }
 
         async function fetchConversationsSilently() {
             try {
-                const res = await fetch("/api/conversations");
-                const data = await res.json();
-                conversations = data;
-                
-                document.getElementById("chats-count").innerText = `${conversations.length} Chats`;
-                
-                // Re-renderizar la lista de chats manteniendo la selección
+                const response = await fetch("/api/conversations");
+                conversations = await response.json();
+                updateKpis();
+
                 const container = document.getElementById("chat-list-container");
-                const currentScroll = container.scrollTop;
+                const scrollTop = container.scrollTop;
                 renderChatList();
-                container.scrollTop = currentScroll;
-            } catch (err) {
-                console.error("Error refreshing conversations:", err);
+                container.scrollTop = scrollTop;
+            } catch (error) {
+                console.error("Error refreshing conversations:", error);
             }
         }
 
         async function fetchActiveMessagesSilently() {
             if (!activeConversationId) return;
+
             try {
-                const res = await fetch(`/api/conversations/${activeConversationId}/messages`);
-                const messages = await res.json();
-                
-                // Verificar si hay nuevos mensajes antes de re-scrollear
+                const response = await fetch(`/api/conversations/${activeConversationId}/messages`);
+                const messages = await response.json();
                 const container = document.getElementById("messages-window");
                 const wasAtBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
-                
+
                 renderMessages(messages);
-                
+
                 if (wasAtBottom) {
                     container.scrollTop = container.scrollHeight;
                 }
-            } catch (err) {
-                console.error("Error refreshing messages:", err);
+            } catch (error) {
+                console.error("Error refreshing messages:", error);
             }
+        }
+
+        function updateKpis() {
+            const hot = conversations.filter((chat) => chat.vehicle_info && chat.tire_size_searched && !chat.pending_consultation).length;
+            const consult = conversations.filter((chat) => chat.pending_consultation).length;
+            document.getElementById("kpi-total").innerText = String(conversations.length);
+            document.getElementById("kpi-hot").innerText = String(hot);
+            document.getElementById("kpi-consult").innerText = String(consult);
+        }
+
+        function getFilteredConversations() {
+            const term = document.getElementById("chat-search").value.trim().toLowerCase();
+            if (!term) return conversations;
+
+            return conversations.filter((chat) => {
+                const haystack = [
+                    chat.contact_name,
+                    chat.contact_id,
+                    chat.vehicle_info,
+                    chat.tire_size_searched,
+                    chat.platform,
+                ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase();
+
+                return haystack.includes(term);
+            });
+        }
+
+        function getLeadMeta(chat) {
+            if (chat.pending_consultation) return { label: "Consulta", className: "tag-consult" };
+            if (!chat.bot_enabled) return { label: "Derivado", className: "tag-deriv" };
+            if (chat.vehicle_info && chat.tire_size_searched) return { label: "Caliente", className: "tag-hot" };
+            if (chat.vehicle_info || chat.tire_size_searched) return { label: "Tibio", className: "tag-warm" };
+            return { label: "Frio", className: "tag-cold" };
         }
 
         function renderChatList() {
             const container = document.getElementById("chat-list-container");
+            const filtered = getFilteredConversations();
             container.innerHTML = "";
 
-            conversations.forEach((chat, index) => {
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="empty-state">No encontre chats con ese filtro.</div>`;
+                return;
+            }
+
+            filtered.forEach((chat) => {
+                const originalIndex = conversations.findIndex((item) => item.id === chat.id);
                 const isActive = chat.id === activeConversationId;
-                const isBotOn = chat.bot_enabled;
-                
-                const div = document.createElement("div");
-                div.className = `chat-item ${isActive ? 'active' : ''}`;
-                div.onclick = () => selectChat(index);
+                const leadMeta = getLeadMeta(chat);
+                const lastMsgText = chat.tire_size_searched
+                    ? `Busco: ${chat.tire_size_searched}`
+                    : chat.vehicle_info
+                        ? `Vehiculo: ${chat.vehicle_info}`
+                        : "Conversacion iniciada";
 
-                // Determinar el tag de scoring / leads
-                let scoringTag = "Frío";
-                let tagClass = "tag-cold";
-                
-                if (chat.vehicle_info && chat.tire_size_searched) {
-                    scoringTag = "Caliente";
-                    tagClass = "tag-hot";
-                } else if (chat.vehicle_info || chat.tire_size_searched) {
-                    scoringTag = "Tibio";
-                    tagClass = "tag-warm";
-                }
-                
-                if (chat.pending_consultation) {
-                    scoringTag = "Consulta";
-                    tagClass = "tag-consult";
-                } else if (!isBotOn) {
-                    scoringTag = "Derivado";
-                    tagClass = "tag-deriv";
-                }
-
-                // Último mensaje (simularemos una vista previa)
-                const lastMsgText = chat.tire_size_searched ? `Buscó: ${chat.tire_size_searched}` : (chat.vehicle_info ? `Vehículo: ${chat.vehicle_info}` : "Conversación iniciada");
-                const timeDiffStr = getTimeDiffString(chat.last_message_at);
-
-                div.innerHTML = `
-                    <div class="chat-info">
-                        <div class="chat-name">${chat.contact_name || chat.contact_id} (${chat.platform === 'whatsapp' ? 'WA' : 'IG'})</div>
-                        <div class="chat-time">${timeDiffStr}</div>
+                const card = document.createElement("div");
+                card.className = `chat-item ${isActive ? "active" : ""}`;
+                card.onclick = () => selectChat(originalIndex);
+                card.innerHTML = `
+                    <div class="chat-row">
+                        <div class="chat-name">${chat.contact_name || chat.contact_id} (${chat.platform === "whatsapp" ? "WA" : "IG"})</div>
+                        <div class="chat-time">${getTimeDiffString(chat.last_message_at)}</div>
                     </div>
-                    <div class="chat-preview" id="preview-${index}">${lastMsgText}</div>
+                    <div class="chat-preview">${lastMsgText}</div>
                     <div class="chat-footer">
-                        <span class="lead-tag ${tagClass}" id="tag-${index}">${scoringTag}</span>
+                        <span class="lead-tag ${leadMeta.className}">${leadMeta.label}</span>
                         <div class="bot-toggle-container">
-                            <span class="switch-label" id="toggle-label-${index}" style="color: ${isBotOn ? 'var(--emerald)' : 'var(--rose)'};">${isBotOn ? 'Bot ON' : 'Manual'}</span>
+                            <span class="switch-label" style="color: ${chat.bot_enabled ? "var(--emerald)" : "var(--rose)"};">${chat.bot_enabled ? "Bot ON" : "Manual"}</span>
                             <label class="switch">
-                                <input type="checkbox" ${isBotOn ? 'checked' : ''} id="bot-chk-${index}" onchange="toggleBot(${index}, event)">
+                                <input type="checkbox" ${chat.bot_enabled ? "checked" : ""} onchange="toggleBot(${originalIndex}, event)">
                                 <span class="slider"></span>
                             </label>
                         </div>
                     </div>
                 `;
-
-                container.appendChild(div);
+                container.appendChild(card);
             });
         }
 
         function getTimeDiffString(timestamp) {
-            if (!timestamp) return "N/A";
+            if (!timestamp) return "Sin actividad";
             const now = new Date();
             const last = new Date(timestamp);
-            const diffMs = now - last;
-            const diffMins = Math.floor(diffMs / 60000);
-            
-            if (diffMins < 1) return "Hace instantes";
-            if (diffMins < 60) return `Hace ${diffMins} min`;
-            const diffHours = Math.floor(diffMins / 60);
-            if (diffHours < 24) return `Hace ${diffHours} hr${diffHours > 1 ? 's' : ''}`;
-            return last.toLocaleDateString();
-        }
+            const diffMinutes = Math.floor((now - last) / 60000);
 
-        function toggleAccordion(id) {
-            const content = document.getElementById(id);
-            const arrow = document.getElementById(`arrow-${id}`);
-            const isHidden = content.style.display === "none";
-            
-            content.style.display = isHidden ? "block" : "none";
-            arrow.style.transform = isHidden ? "rotate(180deg)" : "rotate(0deg)";
+            if (diffMinutes < 1) return "Hace instantes";
+            if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
+            const diffHours = Math.floor(diffMinutes / 60);
+            if (diffHours < 24) return `Hace ${diffHours} h`;
+            return last.toLocaleDateString();
         }
 
         async function selectChat(index) {
             if (index < 0 || index >= conversations.length) return;
+
             activeChatIndex = index;
             activeConversationId = conversations[index].id;
 
-            // Marcar activo en la UI
-            const items = document.querySelectorAll(".chat-item");
-            items.forEach((item, idx) => {
-                if (idx === index) item.classList.add("active");
-                else item.classList.remove("active");
-            });
-
+            renderChatList();
             renderActiveChatDetails();
-            
-            // Mostrar texto de carga inicial
-            document.getElementById("detail-summary").innerText = "Cargando ficha...";
+            document.getElementById("detail-summary").innerText = "Cargando resumen...";
             document.getElementById("detail-location").innerText = "Cargando...";
 
             await fetchActiveMessagesSilently();
-            
-            // Cargar resumen y ubicación (solo caché)
             fetchConversationSummary(activeConversationId, false);
-            
-            // Forzar scroll al fondo en la primera carga del chat
-            const container = document.getElementById("messages-window");
-            container.scrollTop = container.scrollHeight;
         }
 
-        async function fetchConversationSummary(convId, force = false) {
+        async function fetchConversationSummary(conversationId, force = false) {
             try {
-                const res = await fetch(`/api/conversations/${convId}/summary?force=${force}`);
-                const data = await res.json();
-                
-                // Asegurarse de que el usuario no cambió de chat mientras cargaba la respuesta
-                if (activeConversationId === convId) {
-                    const btn = document.getElementById("generate-summary-btn");
-                    
-                    if (data.summary) {
-                        document.getElementById("detail-summary").innerText = data.summary;
-                        document.getElementById("detail-location").innerText = data.location || "No especificada";
-                        
-                        if (data.is_outdated) {
-                            btn.innerHTML = `<span>🔄 Actualizar Resumen (Nuevos mensajes)</span>`;
-                            btn.style.background = "rgba(245, 158, 11, 0.12)";
-                            btn.style.color = "var(--amber)";
-                            btn.style.borderColor = "rgba(245, 158, 11, 0.3)";
-                        } else {
-                            btn.innerHTML = `<span>🔄 Actualizar Resumen con IA</span>`;
-                            btn.style.background = "rgba(255, 255, 255, 0.05)";
-                            btn.style.color = "var(--text-muted)";
-                            btn.style.borderColor = "var(--border)";
-                        }
-                    } else {
-                        document.getElementById("detail-summary").innerText = "Sin resumen generado todavía.";
-                        document.getElementById("detail-location").innerText = "No especificada";
-                        
-                        btn.innerHTML = `<span>✨ Generar Resumen con IA</span>`;
-                        btn.style.background = "rgba(37, 99, 235, 0.12)";
-                        btn.style.color = "#3b82f6";
-                        btn.style.borderColor = "rgba(37, 99, 235, 0.25)";
-                    }
+                const response = await fetch(`/api/conversations/${conversationId}/summary?force=${force}`);
+                const data = await response.json();
+
+                if (activeConversationId !== conversationId) return;
+
+                const button = document.getElementById("generate-summary-btn");
+                if (data.summary) {
+                    document.getElementById("detail-summary").innerText = data.summary;
+                    document.getElementById("detail-location").innerText = data.location || "No especificada";
+                    button.innerText = data.is_outdated ? "Actualizar resumen (hay mensajes nuevos)" : "Actualizar resumen con IA";
+                } else {
+                    document.getElementById("detail-summary").innerText = "Sin resumen generado todavia.";
+                    document.getElementById("detail-location").innerText = "No especificada";
+                    button.innerText = "Generar resumen con IA";
                 }
-            } catch (err) {
-                console.error("Error fetching summary:", err);
-                if (activeConversationId === convId) {
-                    document.getElementById("detail-summary").innerText = "Error al obtener resumen.";
+            } catch (error) {
+                console.error("Error fetching summary:", error);
+                if (activeConversationId === conversationId) {
+                    document.getElementById("detail-summary").innerText = "No pude generar el resumen.";
                     document.getElementById("detail-location").innerText = "No especificada";
                 }
             }
@@ -1058,57 +1043,54 @@
 
         async function generateSummaryManually() {
             if (!activeConversationId) return;
-            
-            const btn = document.getElementById("generate-summary-btn");
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = `<span class="spinner"></span> Generando...`;
-            btn.disabled = true;
 
-            document.getElementById("detail-summary").innerHTML = `<span class="spinner"></span> Procesando conversación con la IA...`;
-            document.getElementById("detail-location").innerText = "Procesando...";
+            const button = document.getElementById("generate-summary-btn");
+            button.disabled = true;
+            button.innerHTML = `<span class="spinner"></span> Generando...`;
+            document.getElementById("detail-summary").innerHTML = `<span class="spinner"></span> Analizando la conversacion...`;
 
             await fetchConversationSummary(activeConversationId, true);
-            
-            btn.disabled = false;
+            button.disabled = false;
         }
 
         function renderActiveChatDetails() {
             const chat = conversations[activeChatIndex];
             if (!chat) return;
 
-            document.getElementById("current-chat-name").innerText = `${chat.contact_name || chat.contact_id} (${chat.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram'})`;
-            
+            document.getElementById("current-chat-name").innerText = `${chat.contact_name || chat.contact_id} (${chat.platform === "whatsapp" ? "WhatsApp" : "Instagram"})`;
+
             let details = `ID: ${chat.contact_id}`;
-            if (chat.vehicle_info) details += ` | Vehículo: ${chat.vehicle_info}`;
+            if (chat.vehicle_info) details += ` | Vehiculo: ${chat.vehicle_info}`;
             if (chat.tire_size_searched) details += ` | Medida: ${chat.tire_size_searched}`;
-            
             document.getElementById("current-chat-details").innerText = details;
 
-            // Rellenar ficha del cliente
             document.getElementById("detail-name").innerText = chat.contact_name || chat.contact_id;
             document.getElementById("detail-vehicles").innerText = chat.vehicle_info || "Ninguno";
             document.getElementById("detail-sizes").innerText = chat.tire_size_searched || "Ninguna";
 
             const takeoverBtn = document.getElementById("takeover-btn");
             if (!chat.bot_enabled) {
-                takeoverBtn.innerText = "Control Manual Activo (IA Apagada)";
+                takeoverBtn.innerText = "Control manual activo";
                 takeoverBtn.classList.add("active");
             } else {
-                takeoverBtn.innerText = "Tomar Control Manual";
+                takeoverBtn.innerText = "Tomar control manual";
                 takeoverBtn.classList.remove("active");
             }
 
-            // Actualizar caja lateral de consulta
-            const sidebarConsultation = document.getElementById("sidebar-consultation-box");
+            const consultationBox = document.getElementById("sidebar-consultation-box");
+            const consultEmpty = document.getElementById("consult-empty");
             if (chat.pending_consultation) {
-                sidebarConsultation.style.display = "flex";
-                const v = chat.pending_consultation.vehicle || chat.vehicle_info || "Desconocido";
-                const r = chat.pending_consultation.rim || "Desconocido";
-                const q = chat.pending_consultation.query || "";
-                const detailText = q ? `<br/><span style="font-size: 11px; opacity: 0.85; display: inline-block; margin-top: 4px; border-left: 2px solid #f97316; padding-left: 6px; font-style: italic;">"${q}"</span>` : "";
-                document.getElementById("sidebar-consultation-query").innerHTML = `El cliente preguntó qué medida lleva una <strong>${v}</strong> con rodado <strong>${r}</strong>.${detailText}`;
+                consultationBox.style.display = "block";
+                consultEmpty.style.display = "none";
+                const vehicle = chat.pending_consultation.vehicle || chat.vehicle_info || "Desconocido";
+                const rim = chat.pending_consultation.rim || "Desconocido";
+                const query = chat.pending_consultation.query || "";
+                document.getElementById("sidebar-consultation-query").innerHTML =
+                    `El cliente pregunto que medida lleva una <strong>${vehicle}</strong> con rodado <strong>${rim}</strong>.` +
+                    (query ? `<br><br><em>"${query}"</em>` : "");
             } else {
-                sidebarConsultation.style.display = "none";
+                consultationBox.style.display = "none";
+                consultEmpty.style.display = "block";
             }
         }
 
@@ -1118,30 +1100,26 @@
 
             const responseInput = document.getElementById("resolve-natural-response");
             const adminResponse = responseInput.value.trim();
-
             if (!adminResponse) {
-                alert("Por favor, escribe la respuesta en lenguaje natural para la IA.");
+                alert("Escribe primero la respuesta en lenguaje natural.");
                 return;
             }
 
-            // Cambiar texto de botón para indicar que está procesando
-            const btn = document.querySelector("#sidebar-consultation-box button");
-            const originalText = btn.innerText;
-            btn.innerText = "Procesando con la IA...";
-            btn.disabled = true;
+            const button = document.querySelector("#sidebar-consultation-box button");
+            const originalText = button.innerText;
+            button.innerText = "Procesando...";
+            button.disabled = true;
 
             try {
-                const res = await fetch(`/api/conversations/${chat.id}/resolve-consultation`, {
+                const response = await fetch(`/api/conversations/${chat.id}/resolve-consultation`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        admin_response: adminResponse
-                    })
+                    body: JSON.stringify({ admin_response: adminResponse }),
                 });
+                const result = await response.json();
 
-                const result = await res.json();
                 if (result.success) {
-                    alert("¡Consulta resuelta, compatibilidad aprendida y mensaje enviado!");
+                    alert("Consulta resuelta, aprendizaje guardado y mensaje enviado.");
                     responseInput.value = "";
                     await fetchConversationsSilently();
                     if (conversations[activeChatIndex]) {
@@ -1149,14 +1127,14 @@
                         await fetchActiveMessagesSilently();
                     }
                 } else {
-                    alert("Error: " + result.error);
+                    alert(`Error: ${result.error}`);
                 }
-            } catch (err) {
-                console.error("Error resolving consultation:", err);
-                alert("Ocurrió un error al procesar la resolución.");
+            } catch (error) {
+                console.error("Error resolving consultation:", error);
+                alert("Ocurrio un error al procesar la resolucion.");
             } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
+                button.innerText = originalText;
+                button.disabled = false;
             }
         }
 
@@ -1164,67 +1142,66 @@
             const container = document.getElementById("messages-window");
             container.innerHTML = "";
 
-            messages.forEach(msg => {
-                const div = document.createElement("div");
-                const isUser = msg.role === 'user';
-                div.className = `msg-bubble ${isUser ? 'msg-user' : 'msg-bot'}`;
+            if (!messages || messages.length === 0) {
+                container.innerHTML = `<div class="empty-state">Todavia no hay mensajes en esta conversacion.</div>`;
+                return;
+            }
 
-                const textDiv = document.createElement("div");
-                textDiv.innerText = msg.content;
-                div.appendChild(textDiv);
+            messages.forEach((message) => {
+                const bubble = document.createElement("div");
+                bubble.className = `msg-bubble ${message.role === "user" ? "msg-user" : "msg-bot"}`;
 
-                const infoDiv = document.createElement("div");
-                infoDiv.className = "msg-info";
-                const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                infoDiv.innerText = time;
-                div.appendChild(infoDiv);
+                const content = document.createElement("div");
+                content.innerText = message.content;
+                bubble.appendChild(content);
 
-                container.appendChild(div);
+                const info = document.createElement("div");
+                info.className = "msg-info";
+                info.innerText = new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                bubble.appendChild(info);
+
+                container.appendChild(bubble);
             });
         }
 
         async function toggleBot(index, event) {
             if (event) event.stopPropagation();
             const chat = conversations[index];
-            const chk = document.getElementById(`bot-chk-${index}`);
-            const isChecked = chk.checked;
+            const checkbox = event.target;
 
             try {
-                const res = await fetch(`/api/conversations/${chat.id}/toggle-bot`, {
+                const response = await fetch(`/api/conversations/${chat.id}/toggle-bot`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ bot_enabled: isChecked })
+                    body: JSON.stringify({ bot_enabled: checkbox.checked }),
                 });
-                const updated = await res.json();
+                const updated = await response.json();
                 conversations[index].bot_enabled = updated.bot_enabled;
-                
                 renderChatList();
                 if (chat.id === activeConversationId) {
                     renderActiveChatDetails();
                 }
-            } catch (err) {
-                console.error("Error toggling bot status:", err);
+            } catch (error) {
+                console.error("Error toggling bot status:", error);
             }
         }
 
         async function manualTakeover() {
             const chat = conversations[activeChatIndex];
             if (!chat) return;
-            const newBotEnabled = !chat.bot_enabled;
-            
+
             try {
-                const res = await fetch(`/api/conversations/${chat.id}/toggle-bot`, {
+                const response = await fetch(`/api/conversations/${chat.id}/toggle-bot`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ bot_enabled: newBotEnabled })
+                    body: JSON.stringify({ bot_enabled: !chat.bot_enabled }),
                 });
-                const updated = await res.json();
+                const updated = await response.json();
                 conversations[activeChatIndex].bot_enabled = updated.bot_enabled;
-                
                 renderChatList();
                 renderActiveChatDetails();
-            } catch (err) {
-                console.error("Error in manual takeover:", err);
+            } catch (error) {
+                console.error("Error in manual takeover:", error);
             }
         }
 
@@ -1233,34 +1210,26 @@
             const text = input.value.trim();
             if (!text || !activeConversationId) return;
 
-            input.value = ""; // Limpiar rápido para mejor UX
+            input.value = "";
 
             try {
-                const res = await fetch(`/api/conversations/${activeConversationId}/send-manual`, {
+                const response = await fetch(`/api/conversations/${activeConversationId}/send-manual`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: text })
+                    body: JSON.stringify({ message: text }),
                 });
-                const result = await res.json();
-                
+                const result = await response.json();
+
                 if (result.success) {
-                    // Refrescar localmente
                     await fetchActiveMessagesSilently();
                     await fetchConversationsSilently();
                 } else {
-                    alert("Error al enviar el mensaje: " + result.error);
+                    alert(`Error al enviar el mensaje: ${result.error}`);
                 }
-            } catch (err) {
-                console.error("Error sending manual message:", err);
+            } catch (error) {
+                console.error("Error sending manual message:", error);
             }
         }
-
-        // Permitir presionar Enter para enviar mensaje
-        document.getElementById("manual-input").addEventListener("keydown", function(e) {
-            if (e.key === "Enter") {
-                sendManualMessage();
-            }
-        });
 
         function addRule() {
             const area = document.getElementById("new-rule-text");
@@ -1268,34 +1237,18 @@
             if (!text) return;
 
             const container = document.getElementById("rules-container");
-            
-            const div = document.createElement("div");
-            div.className = "rule-item";
-            
-            const spanText = document.createElement("span");
-            spanText.innerText = "• " + text;
-            div.appendChild(spanText);
-            
-            const spanDel = document.createElement("span");
-            spanDel.className = "delete-rule";
-            spanDel.innerHTML = "&times;";
-            spanDel.onclick = function() { deleteRule(this); };
-            div.appendChild(spanDel);
-
-            container.prepend(div);
+            const rule = document.createElement("div");
+            rule.className = "rule-item";
+            rule.innerHTML = `<span>${text.startsWith("-") ? text : `- ${text}`}</span><span class="delete-rule" onclick="deleteRule(this)">&times;</span>`;
+            container.prepend(rule);
             area.value = "";
-            alert("¡IA Entrenada de forma exitosa! Hancita aplicará esta nueva regla de negocio a partir de la próxima respuesta.");
+            alert("Nota guardada en el panel.");
         }
 
-        function deleteRule(el) {
-            el.parentElement.remove();
+        function deleteRule(element) {
+            element.parentElement.remove();
         }
 
-        function simulateUpload(type) {
-            alert(`Simulación: cargando Excel de Stock ${type} en el sistema. Los datos de neumáticos, CAI, precios y cantidades se cruzarán automáticamente con el catálogo principal.`);
-        }
-
-        // Carga inicial
         fetchConversations();
     </script>
 </body>

@@ -6,17 +6,79 @@ dotenv.config();
 const supabaseUrl = process.env.SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_KEY || "";
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn("Supabase URL or Key is missing in environment variables.");
+export const isSupabaseConfigured = !!supabaseUrl && !!supabaseKey;
+
+if (!isSupabaseConfigured) {
+  console.warn("Supabase URL or Key is missing. Running with in-memory fallback.");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl || "https://placeholder.local", supabaseKey || "placeholder-key");
+
+type ConversationRecord = {
+  id: string;
+  contact_id: string;
+  platform: "whatsapp" | "instagram";
+  contact_name?: string | null;
+  vehicle_info?: string;
+  tire_size_searched?: string;
+  bot_enabled: boolean;
+  last_message_at: string;
+};
+
+type MessageRecord = {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant" | "system_log";
+  content: string;
+  message_type: string;
+  created_at: string;
+};
+
+type KnowledgeRecord = {
+  id: string;
+  topic: string;
+  content: string;
+  updated_at: string;
+};
+
+const memoryConversations = new Map<string, ConversationRecord>();
+const memoryMessages = new Map<string, MessageRecord[]>();
+const memoryKnowledge = new Map<string, KnowledgeRecord>();
+
+function makeId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getConversationKey(contactId: string, platform: "whatsapp" | "instagram"): string {
+  return `${platform}:${contactId}`;
+}
+
+function sortByLastMessage(left: ConversationRecord, right: ConversationRecord): number {
+  return new Date(right.last_message_at).getTime() - new Date(left.last_message_at).getTime();
+}
 
 export class SupabaseService {
-  // --- CONVERSATIONS ---
-  async getOrCreateConversation(contactId: string, platform: 'whatsapp' | 'instagram', contactName?: string) {
+  async getOrCreateConversation(contactId: string, platform: "whatsapp" | "instagram", contactName?: string) {
+    if (!isSupabaseConfigured) {
+      const key = getConversationKey(contactId, platform);
+      const existing = memoryConversations.get(key);
+      if (existing) return existing;
+
+      const created: ConversationRecord = {
+        id: makeId("conv"),
+        contact_id: contactId,
+        platform,
+        contact_name: contactName || null,
+        bot_enabled: true,
+        last_message_at: new Date().toISOString(),
+      };
+
+      memoryConversations.set(key, created);
+      memoryMessages.set(created.id, []);
+      return created;
+    }
+
     try {
-      // Intentar buscar conversación existente
       const { data: existing, error: searchError } = await supabase
         .from("conversations")
         .select("*")
@@ -27,14 +89,13 @@ export class SupabaseService {
       if (searchError) throw searchError;
       if (existing) return existing;
 
-      // Crear nueva conversación si no existe
       const { data: created, error: insertError } = await supabase
         .from("conversations")
         .insert({
           contact_id: contactId,
           platform,
           contact_name: contactName || null,
-          bot_enabled: true
+          bot_enabled: true,
         })
         .select()
         .single();
@@ -48,6 +109,13 @@ export class SupabaseService {
   }
 
   async getConversation(id: string) {
+    if (!isSupabaseConfigured) {
+      for (const conversation of memoryConversations.values()) {
+        if (conversation.id === id) return conversation;
+      }
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from("conversations")
@@ -68,7 +136,7 @@ export class SupabaseService {
       const finalUpdates: any = {};
 
       if (updates.vehicle_info) {
-        const currentVehicles = current?.vehicle_info ? current.vehicle_info.split(",").map((v: string) => v.trim()) : [];
+        const currentVehicles = current?.vehicle_info ? current.vehicle_info.split(",").map((value: string) => value.trim()) : [];
         const newVehicle = updates.vehicle_info.trim();
         if (newVehicle && !currentVehicles.includes(newVehicle)) {
           currentVehicles.push(newVehicle);
@@ -77,7 +145,7 @@ export class SupabaseService {
       }
 
       if (updates.tire_size_searched) {
-        const currentSizes = current?.tire_size_searched ? current.tire_size_searched.split(",").map((s: string) => s.trim()) : [];
+        const currentSizes = current?.tire_size_searched ? current.tire_size_searched.split(",").map((value: string) => value.trim()) : [];
         const newSize = updates.tire_size_searched.trim();
         if (newSize && !currentSizes.includes(newSize)) {
           currentSizes.push(newSize);
@@ -88,6 +156,7 @@ export class SupabaseService {
       if (Object.keys(finalUpdates).length > 0) {
         return await this.updateConversationDetails(id, finalUpdates);
       }
+
       return current;
     } catch (error) {
       console.error("Error in appendConversationDetails:", error);
@@ -96,12 +165,27 @@ export class SupabaseService {
   }
 
   async updateConversationDetails(id: string, updates: { vehicle_info?: string; tire_size_searched?: string; bot_enabled?: boolean }) {
+    if (!isSupabaseConfigured) {
+      for (const [key, conversation] of memoryConversations.entries()) {
+        if (conversation.id === id) {
+          const updated = {
+            ...conversation,
+            ...updates,
+            last_message_at: new Date().toISOString(),
+          };
+          memoryConversations.set(key, updated);
+          return updated;
+        }
+      }
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from("conversations")
         .update({
           ...updates,
-          last_message_at: new Date().toISOString()
+          last_message_at: new Date().toISOString(),
         })
         .eq("id", id)
         .select()
@@ -115,8 +199,23 @@ export class SupabaseService {
     }
   }
 
-  // --- MESSAGES ---
-  async saveMessage(conversationId: string, role: 'user' | 'assistant' | 'system_log', content: string, messageType: string = 'text') {
+  async saveMessage(conversationId: string, role: "user" | "assistant" | "system_log", content: string, messageType: string = "text") {
+    if (!isSupabaseConfigured) {
+      const currentMessages = memoryMessages.get(conversationId) || [];
+      const message: MessageRecord = {
+        id: makeId("msg"),
+        conversation_id: conversationId,
+        role,
+        content,
+        message_type: messageType,
+        created_at: new Date().toISOString(),
+      };
+      currentMessages.push(message);
+      memoryMessages.set(conversationId, currentMessages);
+      await this.updateConversationDetails(conversationId, {});
+      return message;
+    }
+
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -124,14 +223,13 @@ export class SupabaseService {
           conversation_id: conversationId,
           role,
           content,
-          message_type: messageType
+          message_type: messageType,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Actualizar timestamp de la conversación
       await supabase
         .from("conversations")
         .update({ last_message_at: new Date().toISOString() })
@@ -145,6 +243,14 @@ export class SupabaseService {
   }
 
   async getMessageHistory(conversationId: string, limit: number = 10) {
+    if (!isSupabaseConfigured) {
+      const messages = memoryMessages.get(conversationId) || [];
+      return messages.slice(-limit).map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+    }
+
     try {
       const { data, error } = await supabase
         .from("messages")
@@ -161,8 +267,17 @@ export class SupabaseService {
     }
   }
 
-  // --- MESSAGE QUEUE (DELAYS) ---
   async addToQueue(conversationId: string, text: string, delaySeconds: number) {
+    if (!isSupabaseConfigured) {
+      return {
+        id: makeId("queue"),
+        conversation_id: conversationId,
+        pending_text: text,
+        scheduled_for: new Date(Date.now() + delaySeconds * 1000).toISOString(),
+        is_processed: false,
+      };
+    }
+
     try {
       const scheduledFor = new Date(Date.now() + delaySeconds * 1000).toISOString();
       const { data, error } = await supabase
@@ -171,7 +286,7 @@ export class SupabaseService {
           conversation_id: conversationId,
           pending_text: text,
           scheduled_for: scheduledFor,
-          is_processed: false
+          is_processed: false,
         })
         .select()
         .single();
@@ -185,6 +300,10 @@ export class SupabaseService {
   }
 
   async getPendingQueueMessages() {
+    if (!isSupabaseConfigured) {
+      return [];
+    }
+
     try {
       const now = new Date().toISOString();
       const { data, error } = await supabase
@@ -202,6 +321,10 @@ export class SupabaseService {
   }
 
   async markQueueAsProcessed(queueId: string) {
+    if (!isSupabaseConfigured) {
+      return { id: queueId, is_processed: true };
+    }
+
     try {
       const { data, error } = await supabase
         .from("message_queue")
@@ -218,8 +341,11 @@ export class SupabaseService {
     }
   }
 
-  // --- KNOWLEDGE BASE ---
   async getKnowledgeBase() {
+    if (!isSupabaseConfigured) {
+      return Array.from(memoryKnowledge.values());
+    }
+
     try {
       const { data, error } = await supabase
         .from("knowledge_base")
@@ -233,18 +359,28 @@ export class SupabaseService {
     }
   }
 
-  // --- CONSULTATIONS ---
   async createPendingConsultation(conversationId: string, vehicle: string, rim: number | null, query: string) {
-    try {
-      const topic = `consultation:${conversationId}`;
-      const content = JSON.stringify({
-        vehicle,
-        rim,
-        query,
-        status: "pending",
-        created_at: new Date().toISOString()
-      });
+    const topic = `consultation:${conversationId}`;
+    const content = JSON.stringify({
+      vehicle,
+      rim,
+      query,
+      status: "pending",
+      created_at: new Date().toISOString(),
+    });
 
+    if (!isSupabaseConfigured) {
+      const record: KnowledgeRecord = {
+        id: memoryKnowledge.get(topic)?.id || makeId("kb"),
+        topic,
+        content,
+        updated_at: new Date().toISOString(),
+      };
+      memoryKnowledge.set(topic, record);
+      return record;
+    }
+
+    try {
       const { data: existing } = await supabase
         .from("knowledge_base")
         .select("id")
@@ -260,15 +396,15 @@ export class SupabaseService {
           .single();
         if (error) throw error;
         return data;
-      } else {
-        const { data, error } = await supabase
-          .from("knowledge_base")
-          .insert({ topic, content })
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
       }
+
+      const { data, error } = await supabase
+        .from("knowledge_base")
+        .insert({ topic, content })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
     } catch (error) {
       console.error("Error creating pending consultation:", error);
       return null;
@@ -276,6 +412,26 @@ export class SupabaseService {
   }
 
   async getPendingConsultations() {
+    if (!isSupabaseConfigured) {
+      const pending: any[] = [];
+      for (const record of memoryKnowledge.values()) {
+        if (!record.topic.startsWith("consultation:")) continue;
+        try {
+          const parsed = JSON.parse(record.content);
+          if (parsed.status === "pending") {
+            pending.push({
+              id: record.id,
+              conversation_id: record.topic.split(":")[1],
+              ...parsed,
+            });
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+      return pending;
+    }
+
     try {
       const { data, error } = await supabase
         .from("knowledge_base")
@@ -283,7 +439,7 @@ export class SupabaseService {
         .like("topic", "consultation:%");
 
       if (error) throw error;
-      
+
       const pending: any[] = [];
       for (const row of (data || [])) {
         try {
@@ -293,11 +449,11 @@ export class SupabaseService {
             pending.push({
               id: row.id,
               conversation_id: conversationId,
-              ...parsed
+              ...parsed,
             });
           }
-        } catch (e) {
-          // ignore parsing error
+        } catch {
+          // ignore parse errors
         }
       }
       return pending;
@@ -308,8 +464,28 @@ export class SupabaseService {
   }
 
   async resolveConsultation(conversationId: string) {
+    const topic = `consultation:${conversationId}`;
+
+    if (!isSupabaseConfigured) {
+      const existing = memoryKnowledge.get(topic);
+      if (!existing) return false;
+      try {
+        const parsed = JSON.parse(existing.content);
+        parsed.status = "resolved";
+        parsed.resolved_at = new Date().toISOString();
+        memoryKnowledge.set(topic, {
+          ...existing,
+          content: JSON.stringify(parsed),
+          updated_at: new Date().toISOString(),
+        });
+        return true;
+      } catch {
+        memoryKnowledge.delete(topic);
+        return true;
+      }
+    }
+
     try {
-      const topic = `consultation:${conversationId}`;
       const { data: existing } = await supabase
         .from("knowledge_base")
         .select("*")
@@ -326,13 +502,13 @@ export class SupabaseService {
             .from("knowledge_base")
             .update({
               content: JSON.stringify(parsed),
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq("id", existing.id);
 
           if (error) throw error;
           return true;
-        } catch (e) {
+        } catch {
           await supabase.from("knowledge_base").delete().eq("id", existing.id);
           return true;
         }
@@ -343,7 +519,14 @@ export class SupabaseService {
       return false;
     }
   }
+
+  async listConversationsFallback() {
+    return Array.from(memoryConversations.values()).sort(sortByLastMessage);
+  }
+
+  async listMessagesFallback(conversationId: string) {
+    return memoryMessages.get(conversationId) || [];
+  }
 }
 
 export const dbService = new SupabaseService();
-

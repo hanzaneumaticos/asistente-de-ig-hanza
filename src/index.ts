@@ -6,7 +6,7 @@ import path from "path";
 import * as dotenv from "dotenv";
 import { aiService } from "./services/openai";
 import { metaService } from "./services/meta";
-import { dbService, supabase } from "./services/supabase";
+import { dbService, isSupabaseConfigured, supabase } from "./services/supabase";
 import catalog from "../catalog.json";
 import { saveLearnedCompatibility, parseTireSize } from "./services/tireCompatibility";
 
@@ -28,6 +28,34 @@ app.get("/admin", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || "smart_hanza_verify_token";
+
+type LocalSimulatorConversation = {
+  id: string;
+  contactId: string;
+  contactName: string;
+  botEnabled: boolean;
+  history: Array<{ role: "user" | "assistant"; content: string }>;
+};
+
+const localSimulatorConversations = new Map<string, LocalSimulatorConversation>();
+
+function getLocalSimulatorConversation(contactId: string, contactName: string): LocalSimulatorConversation {
+  const existing = localSimulatorConversations.get(contactId);
+  if (existing) {
+    return existing;
+  }
+
+  const created: LocalSimulatorConversation = {
+    id: `local-${contactId}`,
+    contactId,
+    contactName,
+    botEnabled: true,
+    history: [],
+  };
+
+  localSimulatorConversations.set(contactId, created);
+  return created;
+}
 
 // --- Webhook Verification (for Meta) ---
 app.get("/webhook", (req, res) => {
@@ -128,6 +156,32 @@ function extractAndSaveDetails(conversationId: string, text: string) {
 app.post("/api/chat", async (req, res) => {
   const { message, contactId = "simulador_cliente", contactName = "Cliente Simulador", delayMs } = req.body;
   try {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+      const localConv = getLocalSimulatorConversation(contactId, contactName);
+
+      if (!localConv.botEnabled) {
+        return res.json({
+          responses: ["Hancita esta silenciada. Control manual activo."],
+          botSilenced: true,
+          localMode: true,
+        });
+      }
+
+      localConv.history.push({ role: "user", content: message || "" });
+
+      if (delayMs && typeof delayMs === "number" && delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
+      const response = await aiService.generateResponse(message || "", localConv.history.slice(-15));
+      localConv.history.push({ role: "assistant", content: response || "" });
+
+      return res.json({
+        responses: splitIntoMessages(response || ""),
+        botSilenced: false,
+        localMode: true,
+      });
+    }
     // 1. Obtener o crear conversación en Supabase
     const conv = await dbService.getOrCreateConversation(contactId, "whatsapp", contactName);
     if (!conv) {
@@ -472,6 +526,16 @@ app.post("/webhook", async (req, res) => {
 // --- ADMIN API ENDPOINTS ---
 app.get("/api/conversations", async (req, res) => {
   try {
+    if (!isSupabaseConfigured) {
+      const conversations = await dbService.listConversationsFallback();
+      const pendingConsultations = await dbService.getPendingConsultations();
+      const conversationsWithAlerts = conversations.map((conv: any) => ({
+        ...conv,
+        pending_consultation: pendingConsultations.find((pending) => pending.conversation_id === conv.id) || null,
+      }));
+      return res.json(conversationsWithAlerts);
+    }
+
     const { data: conversations, error } = await supabase
       .from("conversations")
       .select("*")
@@ -589,6 +653,20 @@ app.get("/api/conversations/:id/summary", async (req, res) => {
   const forceGenerate = req.query.force === "true";
 
   try {
+    if (!isSupabaseConfigured) {
+      const messages = await dbService.listMessagesFallback(id);
+      if (!messages.length) {
+        return res.json({ summary: null, location: null, is_outdated: false });
+      }
+
+      const formatted = messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      }));
+      const { summary, location } = await aiService.summarizeConversation(formatted);
+      return res.json({ summary, location, is_outdated: false });
+    }
+
     // 1. Obtener conteo de mensajes
     const { count, error: countError } = await supabase
       .from("messages")
@@ -672,6 +750,11 @@ app.get("/api/conversations/:id/summary", async (req, res) => {
 
 app.get("/api/conversations/:id/messages", async (req, res) => {
   try {
+    if (!isSupabaseConfigured) {
+      const data = await dbService.listMessagesFallback(req.params.id);
+      return res.json(data);
+    }
+
     const { data, error } = await supabase
       .from("messages")
       .select("*")
@@ -687,6 +770,11 @@ app.get("/api/conversations/:id/messages", async (req, res) => {
 app.post("/api/conversations/:id/toggle-bot", async (req, res) => {
   const { bot_enabled } = req.body;
   try {
+    if (!isSupabaseConfigured) {
+      const data = await dbService.updateConversationDetails(req.params.id, { bot_enabled });
+      return res.json(data);
+    }
+
     const { data, error } = await supabase
       .from("conversations")
       .update({ bot_enabled })
@@ -703,6 +791,21 @@ app.post("/api/conversations/:id/toggle-bot", async (req, res) => {
 app.post("/api/conversations/:id/send-manual", async (req, res) => {
   const { message } = req.body;
   try {
+    if (!isSupabaseConfigured) {
+      const conv = await dbService.getConversation(req.params.id);
+      if (!conv) throw new Error("Conversacion no encontrada.");
+      await dbService.updateConversationDetails(req.params.id, { bot_enabled: false });
+      await dbService.saveMessage(req.params.id, "assistant", message);
+
+      if (conv.platform === "whatsapp") {
+        await metaService.sendWhatsAppMessage(conv.contact_id, message);
+      } else if (conv.platform === "instagram") {
+        await metaService.sendInstagramMessage(conv.contact_id, message);
+      }
+
+      return res.json({ success: true });
+    }
+
     const { data: conv, error: convErr } = await supabase
       .from("conversations")
       .select("*")
