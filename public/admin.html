@@ -468,6 +468,14 @@
             border-bottom-left-radius: 4px;
         }
 
+        .msg-system {
+            align-self: center;
+            max-width: min(88%, 720px);
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.28);
+            color: #ffd8b4;
+        }
+
         .msg-info {
             margin-top: 8px;
             color: rgba(255, 255, 255, 0.62);
@@ -1149,7 +1157,12 @@
 
             messages.forEach((message) => {
                 const bubble = document.createElement("div");
-                bubble.className = `msg-bubble ${message.role === "user" ? "msg-user" : "msg-bot"}`;
+                const bubbleClass = message.role === "user"
+                    ? "msg-user"
+                    : message.role === "system_log"
+                        ? "msg-system"
+                        : "msg-bot";
+                bubble.className = `msg-bubble ${bubbleClass}`;
 
                 const content = document.createElement("div");
                 content.innerText = message.content;

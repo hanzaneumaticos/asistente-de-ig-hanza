@@ -134,6 +134,50 @@ async function sendInstagramResponses(to: string, responses: string[]) {
   }
 }
 
+function extractMetaErrorMessage(error: any): string {
+  const metaError = error?.response?.data?.error;
+  if (metaError?.message) {
+    return metaError.message;
+  }
+
+  if (typeof error?.message === "string" && error.message.trim()) {
+    return error.message;
+  }
+
+  return "Error desconocido al enviar la respuesta.";
+}
+
+async function saveSystemLog(conversationId: string, content: string) {
+  await dbService.saveMessage(conversationId, "system_log", content, "system_log");
+}
+
+async function deliverAssistantResponse(
+  conversationId: string,
+  platform: "whatsapp" | "instagram",
+  recipientId: string,
+  response: string,
+) {
+  const individualResponses = splitIntoMessages(response || "");
+
+  try {
+    if (platform === "whatsapp") {
+      await sendWhatsAppResponses(recipientId, individualResponses);
+    } else {
+      await sendInstagramResponses(recipientId, individualResponses);
+    }
+
+    await dbService.saveMessage(conversationId, "assistant", response || "");
+  } catch (error: any) {
+    const errorMessage = extractMetaErrorMessage(error);
+    const platformLabel = platform === "whatsapp" ? "WhatsApp" : "Instagram";
+    await saveSystemLog(
+      conversationId,
+      `[${platformLabel}] No se pudo entregar la respuesta automatica: ${errorMessage}`,
+    );
+    throw error;
+  }
+}
+
 // Extraer y guardar detalles (vehículo y medida de neumático) en segundo plano
 function extractAndSaveDetails(conversationId: string, text: string) {
   try {
@@ -298,11 +342,7 @@ app.post("/webhook", async (req, res) => {
           // Generar respuesta
           const aiResponse = await aiService.generateResponse(text || "", dbHistory, conv.id);
           
-          // Guardar respuesta saliente
-
-          const individualResponses = splitIntoMessages(aiResponse || "");
-          await sendWhatsAppResponses(from, individualResponses);
-          await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+          await deliverAssistantResponse(conv.id, "whatsapp", from, aiResponse || "");
 
         } else if (type === "audio") {
           console.log(`WhatsApp audio from ${from}`);
@@ -324,9 +364,7 @@ app.post("/webhook", async (req, res) => {
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(transcription, dbHistory, conv.id);
-                const individualResponses = splitIntoMessages(aiResponse || "");
-                await sendWhatsAppResponses(from, individualResponses);
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                await deliverAssistantResponse(conv.id, "whatsapp", from, aiResponse || "");
               } else {
                 await metaService.sendWhatsAppMessage(from, "Disculpá, no logré escuchar bien tu audio. ¿Me lo podrías escribir en texto?");
               }
@@ -364,9 +402,7 @@ app.post("/webhook", async (req, res) => {
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
                 
-                const individualResponses = splitIntoMessages(aiResponse || "");
-                await sendWhatsAppResponses(from, individualResponses);
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                await deliverAssistantResponse(conv.id, "whatsapp", from, aiResponse || "");
               } else {
                 // No detectado
                 await metaService.sendWhatsAppMessage(
@@ -422,9 +458,7 @@ app.post("/webhook", async (req, res) => {
 
           const dbHistory = await dbService.getMessageHistory(conv.id, 15);
           const aiResponse = await aiService.generateResponse(message.text || "", dbHistory, conv.id);
-          const individualResponses = splitIntoMessages(aiResponse || "");
-          await sendInstagramResponses(senderId, individualResponses);
-          await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+          await deliverAssistantResponse(conv.id, "instagram", senderId, aiResponse || "");
         } else if (message.attachments) {
           const imgAttachment = message.attachments.find((att: any) => att.type === "image");
           const audioAttachment = message.attachments.find((att: any) => att.type === "audio" || att.type === "voice");
@@ -449,9 +483,7 @@ app.post("/webhook", async (req, res) => {
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
-                const individualResponses = splitIntoMessages(aiResponse || "");
-                await sendInstagramResponses(senderId, individualResponses);
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                await deliverAssistantResponse(conv.id, "instagram", senderId, aiResponse || "");
               } else {
                 await metaService.sendInstagramMessage(
                   senderId,
@@ -481,9 +513,7 @@ app.post("/webhook", async (req, res) => {
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
                 const aiResponse = await aiService.generateResponse(transcription, dbHistory, conv.id);
-                const individualResponses = splitIntoMessages(aiResponse || "");
-                await sendInstagramResponses(senderId, individualResponses);
-                await dbService.saveMessage(conv.id, "assistant", aiResponse || "");
+                await deliverAssistantResponse(conv.id, "instagram", senderId, aiResponse || "");
               } else {
                 await metaService.sendInstagramMessage(senderId, "Disculpá, no logré escuchar bien tu audio. ¿Me lo podrías escribir en texto?");
               }
@@ -775,12 +805,10 @@ app.post("/api/conversations/:id/send-manual", async (req, res) => {
       const conv = await dbService.getConversation(req.params.id);
       if (!conv) throw new Error("Conversacion no encontrada.");
       await dbService.updateConversationDetails(req.params.id, { bot_enabled: false });
-      await dbService.saveMessage(req.params.id, "assistant", message);
-
       if (conv.platform === "whatsapp") {
-        await metaService.sendWhatsAppMessage(conv.contact_id, message);
+        await deliverAssistantResponse(req.params.id, "whatsapp", conv.contact_id, message);
       } else if (conv.platform === "instagram") {
-        await metaService.sendInstagramMessage(conv.contact_id, message);
+        await deliverAssistantResponse(req.params.id, "instagram", conv.contact_id, message);
       }
 
       return res.json({ success: true });
@@ -800,13 +828,13 @@ app.post("/api/conversations/:id/send-manual", async (req, res) => {
       .eq("id", req.params.id);
 
     // 2. Guardar mensaje manual en la base de datos
-    await dbService.saveMessage(req.params.id, "assistant", message);
+    await saveSystemLog(req.params.id, "[Manual] Enviando mensaje manual...");
 
     // 3. Enviar mensaje a Meta según plataforma
     if (conv.platform === "whatsapp") {
-      await metaService.sendWhatsAppMessage(conv.contact_id, message);
+      await deliverAssistantResponse(req.params.id, "whatsapp", conv.contact_id, message);
     } else if (conv.platform === "instagram") {
-      await metaService.sendInstagramMessage(conv.contact_id, message);
+      await deliverAssistantResponse(req.params.id, "instagram", conv.contact_id, message);
     }
 
     res.json({ success: true });
