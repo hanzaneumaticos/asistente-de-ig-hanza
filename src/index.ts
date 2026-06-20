@@ -389,18 +389,12 @@ app.post("/webhook", async (req, res) => {
               console.log(`OpenAI detected tire size: ${detectedSize}`);
               
               if (detectedSize && detectedSize !== "NO_DETECTADO") {
-                // Notificar al cliente que se detectó la medida
-                await metaService.sendWhatsAppMessage(
-                  from,
-                  `¡Buenísimo! Detecté que tu neumático es medida *${detectedSize}* en la foto. Dejame buscarte las opciones disponibles...`
-                );
-                
                 // Actualizar la conversación en Supabase (agregando la medida)
                 await dbService.appendConversationDetails(conv.id, { tire_size_searched: detectedSize });
                 
-                // Simular respuesta usando la medida detectada
+                // Responder directo con la info comercial usando la medida detectada
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
-                const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
+                const aiResponse = await aiService.generateResponse(`Busco cubiertas ${detectedSize}`, dbHistory, conv.id);
                 
                 await deliverAssistantResponse(conv.id, "whatsapp", from, aiResponse || "");
               } else {
@@ -474,15 +468,10 @@ app.post("/webhook", async (req, res) => {
               console.log(`OpenAI detected tire size from IG image: ${detectedSize}`);
               
               if (detectedSize && detectedSize !== "NO_DETECTADO") {
-                await metaService.sendInstagramMessage(
-                  senderId,
-                  `¡Buenísimo! Detecté que tu neumático es medida *${detectedSize}* en la foto. Dejame buscarte las opciones disponibles...`
-                );
-                
                 await dbService.appendConversationDetails(conv.id, { tire_size_searched: detectedSize });
                 
                 const dbHistory = await dbService.getMessageHistory(conv.id, 15);
-                const aiResponse = await aiService.generateResponse(detectedSize, dbHistory, conv.id);
+                const aiResponse = await aiService.generateResponse(`Busco cubiertas ${detectedSize}`, dbHistory, conv.id);
                 await deliverAssistantResponse(conv.id, "instagram", senderId, aiResponse || "");
               } else {
                 await metaService.sendInstagramMessage(

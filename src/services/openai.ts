@@ -442,7 +442,7 @@ async function executeSearchTool(
   let escalate = false;
   let incompatible = false;
 
-  if (detectedVehicle) {
+  if (detectedVehicle && !parsedSize) {
     if (allCompatibleSizes.length === 0) {
       escalate = true;
     } else if (detectedRim && exactCompatibleSizes.length === 0) {
