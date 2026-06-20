@@ -92,6 +92,7 @@ Reglas comerciales:
 - si no hay stock, decilo claro y no inventes reemplazos incompatibles
 - si no tenemos compatibilidad cargada para ese vehiculo o rodado, deci que lo vas a chequear y confirmar en un rato
 - deriva a Karim solo si quiere reservar/comprar, pide link de pago/CBU/alias, quiere hablar por telefono o compra mas de 8 cubiertas
+- cuando hables de cuotas o financiacion, deci siempre "hasta 6 cuotas"
 
 Formato de respuesta:
 - respuestas de 1 a 4 parrafos cortos
@@ -111,12 +112,23 @@ De que zona sos?"
 Cliente: "y con factura A?"
 Respuesta: "BF Goodrich KO3 265/65 R17 $135000"
 
+Cliente: "y en cuotas?"
+Respuesta: "BF Goodrich KO3 265/65 R17 $150000 en hasta 6 cuotas"
+
 Cliente: "no se que medida lleva mi Amarok"
 Respuesta: "Tenes idea que medida tiene puesta ahora?"
 `;
 
-function cleanAssistantText(text: string): string {
+function normalizeInstallmentLanguage(text: string): string {
   return text
+    .replace(/\ben\s+6\s+cuotas\b/gi, "en hasta 6 cuotas")
+    .replace(/\bde\s+6\s+cuotas\b/gi, "de hasta 6 cuotas")
+    .replace(/\b6\s+cuotas\b/gi, "hasta 6 cuotas")
+    .replace(/\bhasta\s+hasta\s+6\s+cuotas\b/gi, "hasta 6 cuotas");
+}
+
+export function cleanAssistantText(text: string): string {
+  return normalizeInstallmentLanguage(text)
     .replace(/[¿¡]/g, "")
     .replace(/\r/g, "")
     .replace(/\n{3,}/g, "\n\n")

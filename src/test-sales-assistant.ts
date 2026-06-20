@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildConversationContext, detectCatalogIntent } from "./services/openai";
+import { buildConversationContext, cleanAssistantText, detectCatalogIntent } from "./services/openai";
 import { detectRim, detectVehicle, parseTireSize } from "./services/tireCompatibility";
 
 function run() {
@@ -55,6 +55,16 @@ function run() {
   assert.equal(detectRim("rodado 20"), 20);
   assert.equal(detectRim("r17"), 17);
   assert.equal(detectRim("llanta 18"), 18);
+
+  assert.equal(
+    cleanAssistantText("Te queda en 6 cuotas sin interes."),
+    "Te queda en hasta 6 cuotas sin interes.",
+  );
+
+  assert.equal(
+    cleanAssistantText("Lo podes pagar en hasta 6 cuotas."),
+    "Lo podes pagar en hasta 6 cuotas.",
+  );
 
   console.log("Sales assistant tests passed.");
 }
