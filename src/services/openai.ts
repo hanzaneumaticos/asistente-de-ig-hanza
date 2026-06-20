@@ -98,6 +98,9 @@ Formato de respuesta:
 - respuestas de 1 a 4 parrafos cortos
 - cuando pases precios, cada precio va en un parrafo separado
 - el parrafo de precio debe incluir solo marca, modelo, medida y precio
+- cuando ofrezcas opciones, mostra como maximo 2
+- prioriza BF Goodrich antes que Michelin
+- dentro de BF Goodrich prioriza KO3 y despues Trail-Terrain, salvo que no haya stock o el cliente pida otra cosa
 - si corresponde, cerra con una sola pregunta util para seguir la venta
 - no repitas envio gratis, ni pedir revisar el costado, si ya se dijo antes
 
@@ -359,12 +362,14 @@ function scoreCatalogItem(item: any, query: string, userMessage: string, compati
   const model = String(item.Modelo || "").toLowerCase();
   const brand = String(item.Marca || "").toLowerCase();
   const fullText = `${query} ${userMessage}`.toLowerCase();
+  const explicitlyAskedMichelin = fullText.includes("michelin");
+  const explicitlyAskedBf = fullText.includes("bf") || fullText.includes("goodrich");
 
   if (hasStock) score += 10000;
   if (compatibleSizes.includes(sizeStr)) score += 2500;
 
-  if (fullText.includes("michelin") && brand.includes("michelin")) score += 600;
-  if ((fullText.includes("bf") || fullText.includes("goodrich")) && brand.includes("goodrich")) score += 600;
+  if (explicitlyAskedMichelin && brand.includes("michelin")) score += 600;
+  if (explicitlyAskedBf && brand.includes("goodrich")) score += 600;
 
   for (const modelHint of MODELS_WITH_PRIORITY) {
     if (fullText.includes(modelHint) && model.includes(modelHint)) {
@@ -373,13 +378,13 @@ function scoreCatalogItem(item: any, query: string, userMessage: string, compati
   }
 
   if (brand.includes("goodrich")) {
-    score += 150;
-    if (model.includes("ko3")) score += 100;
-    if (model.includes("trail")) score += 80;
+    score += explicitlyAskedMichelin ? 40 : 450;
+    if (model.includes("ko3")) score += 220;
+    if (model.includes("trail")) score += 160;
   }
 
   if (brand.includes("michelin")) {
-    score += 80;
+    score += explicitlyAskedBf ? 30 : 120;
   }
 
   return score;
@@ -511,7 +516,7 @@ async function executeSearchTool(
       };
     })
     .sort((left, right) => right.score - left.score)
-    .slice(0, 6);
+    .slice(0, 2);
 
   const results: SearchResult[] = scoredItems.map(({ item, compatibilidad }) => ({
     cai: String(item.CAI),
